@@ -112,14 +112,17 @@ def common_voice_file2utt(path)->Dict[str,str]:
         return str(f).split('/')[-1]
     return {str(f):key2utt[get_key(f)] for f in utts if get_key(f) in key2utt.keys()}
 
+def clean_text(text:str):
+    return text.lower()
 
-def build_text_corpus(base_path, corpus_file ='spanish.text'):
+def build_text_corpus(base_path, corpus_file ='spanish.txt'):
     file2utt = {
         **read_openslr("%s/data/asr_datasets/openslr" % base_path),
         **{k:v.original_text for k,v in mailabs_data("%s/data/asr_datasets/m-ailabs-speech-dataset/es_ES" % base_path).items()},
         **read_HEROICOandUSMA("%s/data/asr_datasets/LDC2006S37" % base_path),
         **common_voice_file2utt('%s/data/asr_datasets/common_voice_es' % base_path)
     }
+    file2utt = {f:clean_text(text) for f,text in file2utt.items()}
     print('num files %d' % len(file2utt.keys()))
     print('num texts %d' % len(file2utt.values()))
     print('num unique texts %d' % len(set(file2utt.values())))
