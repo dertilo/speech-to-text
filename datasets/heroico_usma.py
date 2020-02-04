@@ -34,7 +34,6 @@ def build_file2utt_heroico_answers(path):
             )
         )
     }
-    assert all([f.endswith(".wav") for f in file2utt.keys()])
     assert not any([d is None for d in file2utt.values()])
     assert all((os.path.isfile(wav_file) for wav_file in file2utt.keys()))
     return file2utt
@@ -60,8 +59,6 @@ def build_file2utterance_heroico_recordings(path):
     wavs = list(Path(join(path, heroico_recordings_path)).rglob("*.wav"))
     file2utt = {str(f): get_utterance(f) for f in wavs}
     assert all([f.endswith(".wav") for f in file2utt.keys()])
-    assert len(wavs) == len(file2utt.keys())
-
     return file2utt
 
 
@@ -87,7 +84,6 @@ def build_file2utterance_usma(path):
 
     file2utt = {str(f): get_usma_utterance(f) for f in wavs}
     assert all([f.endswith(".wav") for f in file2utt.keys()])
-    assert len(wavs) == len(file2utt.keys())
     return file2utt
 
 
