@@ -1,3 +1,5 @@
+import sys
+sys.path.append('.')
 import os
 from os.path import join
 from typing import NamedTuple, Dict
@@ -14,7 +16,7 @@ class MailabsText(NamedTuple):
 
 def mailabs_data(
     path=".../m-ailabs-speech-dataset/es_ES",
-) -> Dict[str, str]:
+) -> Dict[str, MailabsText]:
     """
     59297 utterances
     """
@@ -88,15 +90,48 @@ def download_spanish_srl_corpora():
         )
 
 
+def common_voice_data(path):
+    g = data_io.read_lines(join(path, 'validated.tsv'))
+    header = next(g).split('\t')
+
+    def parse_line(l):
+        d = {k: v for k, v in zip(header, l.split('\t'))}
+        return d
+
+    data = [parse_line(l) for l in g]
+    return data
+
+def common_voice_file2utt(path)->Dict[str,str]:
+    '''
+    112127 validated spanish utterances
+    '''
+    key2utt = {d['path']:d['sentence'] for d in common_voice_data(path)}
+    utts = list(Path(path).rglob("*.mp3"))
+
+    def get_key(f):
+        return str(f).split('/')[-1]
+    return {str(f):key2utt[get_key(f)] for f in utts if get_key(f) in key2utt.keys()}
+
+
+def build_text_corpus(base_path, corpus_file ='spanish.text'):
+    file2utt = {
+        **read_openslr("%s/data/asr_datasets/openslr" % base_path),
+        **{k:v.original_text for k,v in mailabs_data("%s/data/asr_datasets/m-ailabs-speech-dataset/es_ES" % base_path).items()},
+        **read_HEROICOandUSMA("%s/data/asr_datasets/LDC2006S37" % base_path),
+        **common_voice_file2utt('%s/data/asr_datasets/common_voice_es' % base_path)
+    }
+    print('num files %d' % len(file2utt.keys()))
+    print('num texts %d' % len(file2utt.values()))
+    print('num unique texts %d' % len(set(file2utt.values())))
+
+    data_io.write_lines(corpus_file, set(file2utt.values()))
+
+
 if __name__ == "__main__":
     data = list(mailabs_data().values())
     # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
     # download_spanish_srl_corpora()
-    gunther = "/home/tilo/gunther"
-    file2utt = {
-        **read_openslr("%s/data/asr_datasets/openslr" % gunther),
-        **mailabs_data("%s/data/asr_datasets/m-ailabs-speech-dataset/es_ES" % gunther),
-        **read_HEROICOandUSMA("%s/data/asr_datasets/LDC2006S37" % gunther),
-    }
 
-    print()
+    # base_path = "/home/tilo/gunther"
+    base_path = "/docker-share"
+    build_text_corpus(base_path)
