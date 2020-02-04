@@ -33,7 +33,7 @@ def mailabs_data(path=".../m-ailabs-speech-dataset/es_ES",) -> Dict[str, Mailabs
         key = str(f).split("/")[-1].replace(" copy", "")
         return key2texts[key]
 
-    return {f: get_texts(f) for f in wavs}
+    return {str(f): get_texts(f) for f in wavs}
 
 
 def read_openslr(path) -> Dict[str, str]:
@@ -56,7 +56,7 @@ def read_openslr(path) -> Dict[str, str]:
         key = str(f).split("/")[-1]
         return key2text[key]
 
-    return {f: get_text(f) for f in wavs}
+    return {str(f): get_text(f) for f in wavs}
 
 
 def download_spanish_srl_corpora():
@@ -128,7 +128,6 @@ def build_text_corpus(base_path, corpus_file="spanish.txt"):
 
 
 def spanish_corpus(base_path):
-    itertools.chain()
     file2utt = {
         **read_openslr("%s/openslr" % base_path),
         **{
