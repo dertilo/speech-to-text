@@ -7,6 +7,7 @@ from util import data_io
 
 def read_HEROICOandUSMA(path=".../LDC2006S37"):
     """
+    overall 6_370 unique (textual) utterances; 19_020 recordings
     the read speech prompts are listed in two files in the transcripts directory:
     HEROICO- Recordings.txt and USMA-prompts.txt
     containing the sentences read by informants at the Mexican Military Academy and USMA
@@ -89,3 +90,4 @@ def build_file2utterance_usma(path):
 
 if __name__ == "__main__":
     file2utt = read_HEROICOandUSMA("/home/tilo/gunther/data/asr_datasets/LDC2006S37")
+    print(len(set(file2utt.keys())))
