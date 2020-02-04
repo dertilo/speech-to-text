@@ -28,6 +28,7 @@ def mailabs_data(
 
     return {f: get_texts(f) for f in wavs}
 
+
 def read_openslr(path) -> Dict[str, str]:
     wavs = list(Path(path).rglob("*.wav"))
     tsvs = list(Path(path).rglob("*.tsv"))
@@ -43,15 +44,43 @@ def read_openslr(path) -> Dict[str, str]:
             parse_line(l) for l in data_io.read_lines(join(path, str(tsv_file)))
         )
     }
+
     def get_text(f):
-        key = str(f).split('/')[-1]
+        key = str(f).split("/")[-1]
         return key2text[key]
-    file2text = {f:get_text(f) for f in wavs}
+
+    file2text = {f: get_text(f) for f in wavs}
     return file2text
 
+
+def download_spanish_srl_corpora():
+    dsnumer_abbrev = [
+        ("71", "cl"),# chilean
+        ("72", "co"),# colombian
+        ("73", "pe"),# peruvian
+        ("74", "pr"),# puerto rico
+        ("75", "ve"),# venezuelan
+    ]
+    for dsnumber, abbrev in dsnumer_abbrev:
+        data_io.download_data(
+            "https://www.openslr.org/resources/%s" % dsnumber,
+            "es_%s_female.zip" % abbrev,
+            "es_%s_female" % abbrev,
+            unzip_it=True,
+            do_raise=False,
+            verbose=True,
+        )
+        data_io.download_data(
+            "https://www.openslr.org/resources/%s" % dsnumber,
+            "es_%s_male.zip" % abbrev,
+            "es_%s_male" % abbrev,
+            unzip_it=True,
+            do_raise=False,
+            verbose=True,
+        )
 
 
 if __name__ == "__main__":
     # data = mailabs_data()
-    read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
-    print()
+    # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
+    download_spanish_srl_corpora()
