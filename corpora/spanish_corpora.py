@@ -1,4 +1,3 @@
-import itertools
 import sys
 
 sys.path.append(".")
@@ -34,6 +33,13 @@ def mailabs_data(path=".../m-ailabs-speech-dataset/es_ES",) -> Dict[str, Mailabs
         return key2texts[key]
 
     return {str(f): get_texts(f) for f in wavs}
+
+
+def download_mailabs_corpus(file="es_ES.tgz"):
+    url = "http://www.caito.de/data/Training/stt_tts"
+    data_io.download_data(
+        url, file, "m-ailabs_es", unzip_it=True, verbose=True,
+    )
 
 
 def read_openslr(path) -> Dict[str, str]:
@@ -144,10 +150,11 @@ def spanish_corpus(base_path):
 
 
 if __name__ == "__main__":
-    data = list(mailabs_data().values())
+    download_mailabs_corpus()
+    # data = list(mailabs_data().values())
     # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
     # download_spanish_srl_corpora()
 
     # base_path = "/home/tilo/gunther"
-    base_path = "/docker-share/data/asr_datasets"
-    build_text_corpus(base_path)
+    # base_path = "/docker-share/data/asr_datasets"
+    # build_text_corpus(base_path)
