@@ -35,13 +35,6 @@ def mailabs_data(path=".../m-ailabs-speech-dataset/es_ES",) -> Dict[str, Mailabs
     return {str(f): get_texts(f) for f in wavs}
 
 
-def download_mailabs_corpus(file="es_ES.tgz"):
-    url = "http://www.caito.de/data/Training/stt_tts"
-    data_io.download_data(
-        url, file, "m-ailabs_es", unzip_it=True, verbose=True,
-    )
-
-
 def read_openslr(path) -> Dict[str, str]:
     wavs = list(Path(path).rglob("*.wav"))
     tsvs = list(Path(path).rglob("*.tsv"))
@@ -63,37 +56,6 @@ def read_openslr(path) -> Dict[str, str]:
         return key2text[key]
 
     return {str(f): get_text(f) for f in wavs}
-
-
-def download_spanish_srl_corpora():
-    """
-    all together 18698 utterances
-    :return:
-    """
-    dsnumer_abbrev = [
-        ("71", "cl"),  # chilean
-        ("72", "co"),  # colombian
-        ("73", "pe"),  # peruvian
-        ("74", "pr"),  # puerto rico
-        ("75", "ve"),  # venezuelan
-    ]
-    for dsnumber, abbrev in dsnumer_abbrev:
-        data_io.download_data(
-            "https://www.openslr.org/resources/%s" % dsnumber,
-            "es_%s_female.zip" % abbrev,
-            "es_%s_female" % abbrev,
-            unzip_it=True,
-            do_raise=False,
-            verbose=True,
-        )
-        data_io.download_data(
-            "https://www.openslr.org/resources/%s" % dsnumber,
-            "es_%s_male.zip" % abbrev,
-            "es_%s_male" % abbrev,
-            unzip_it=True,
-            do_raise=False,
-            verbose=True,
-        )
 
 
 def common_voice_data(path):
@@ -138,9 +100,7 @@ def spanish_corpus(base_path):
         **read_openslr("%s/openslr" % base_path),
         **{
             k: v.original_text
-            for k, v in mailabs_data(
-                "%s/m-ailabs-speech-dataset/es_ES" % base_path
-            ).items()
+            for k, v in mailabs_data("%s/m-ailabs_es" % base_path).items()
         },
         **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
         **common_voice_file2utt("%s/common_voice_es" % base_path),
@@ -150,10 +110,8 @@ def spanish_corpus(base_path):
 
 
 if __name__ == "__main__":
-    download_mailabs_corpus()
-    # data = list(mailabs_data().values())
+    data = list(mailabs_data().values())
     # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
-    # download_spanish_srl_corpora()
 
     # base_path = "/home/tilo/gunther"
     # base_path = "/docker-share/data/asr_datasets"
