@@ -6,16 +6,11 @@ from util import data_io
 def download_librispeech_en(path):
     base_url = "http://www.openslr.org/resources/12"
     files = ["dev-clean.tar.gz", "train-clean-100.tar.gz", "test-clean.tar.gz"]
-    [
+    data_folder = os.path.join(path, "libri-speech")
+    for file_name in files:
         data_io.download_data(
-            base_url,
-            file_name,
-            os.path.join(path, "libri-speech"),
-            unzip_it=True,
-            verbose=True,
+            base_url, file_name, data_folder, unzip_it=True, verbose=True,
         )
-        for file_name in files
-    ]
 
 
 def download_spanish_srl_corpora(path):
@@ -36,7 +31,7 @@ def download_spanish_srl_corpora(path):
             data_io.download_data(
                 "https://www.openslr.org/resources/%s" % dsnumber,
                 "es_%s_%s.zip" % (abbrev, sex),
-                os.path.join(path, "es_%s_%s" % (abbrev, sex)),
+                path,
                 unzip_it=True,
                 do_raise=False,
                 verbose=True,
@@ -45,17 +40,15 @@ def download_spanish_srl_corpora(path):
 
 def download_mailabs_corpus(path, file="es_ES.tgz"):
     url = "http://www.caito.de/data/Training/stt_tts"
-    data_folder = os.path.join(path, "m-ailabs_es")
     data_io.download_data(
-        url, file, data_folder, unzip_it=True, verbose=True,
+        url, file, path, unzip_it=True, verbose=True,
     )
 
 
 def download_herioco_umsa(path):
     url = "http://www.openslr.org/resources/39"
-    data_folder = os.path.join(path, "LDC2006S37")
     data_io.download_data(
-        url, "LDC2006S37.tar.gz", data_folder, verbose=True, unzip_it=True,
+        url, "LDC2006S37.tar.gz", path, verbose=True, unzip_it=True,
     )
 
 
