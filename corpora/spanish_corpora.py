@@ -1,5 +1,8 @@
 import sys
 
+import torchaudio
+from tqdm import tqdm
+
 sys.path.append(".")
 import os
 from os.path import join
@@ -88,6 +91,15 @@ def clean_text(text: str):
 
 
 def build_text_corpus(base_path, corpus_file="spanish.txt"):
+    """
+    num files 209142
+    num texts 209142
+    num unique texts 160319
+
+    :param base_path:
+    :param corpus_file:
+    :return:
+    """
     file2utt = spanish_corpus(base_path)
     print("num files %d" % len(file2utt.keys()))
     print("num texts %d" % len(file2utt.values()))
@@ -95,24 +107,43 @@ def build_text_corpus(base_path, corpus_file="spanish.txt"):
     data_io.write_lines(corpus_file, set(file2utt.values()))
 
 
-def spanish_corpus(base_path):
+def spanish_corpus(base_path, check_audio=False):
+    """
+
+    :param base_path:
+    :return:
+    """
+
+    def audio_is_loadable(f: str):
+        try:
+            data, fs = torchaudio.load(f)
+            return True
+        except Exception:
+            print("file %s is broken!" % f)
+            return False
+
+    print('building corpus')
     file2utt = {
-        **read_openslr("%s/openslr" % base_path),
+        **read_openslr("%s/openslr_spanish" % base_path),
         **{
             k: v.original_text
-            for k, v in mailabs_data("%s/m-ailabs_es" % base_path).items()
+            for k, v in mailabs_data("%s/mailabs" % base_path).items()
         },
         **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
         **common_voice_file2utt("%s/common_voice_es" % base_path),
     }
-    file2utt = {f: clean_text(text) for f, text in file2utt.items()}
+    file2utt = {
+        f: clean_text(text)
+        for f, text in tqdm(file2utt.items())
+        if not check_audio or audio_is_loadable(f)
+    }
     return file2utt
 
 
 if __name__ == "__main__":
-    data = list(mailabs_data().values())
+    # data = list(mailabs_data().values())
     # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
 
     # base_path = "/home/tilo/gunther"
-    # base_path = "/docker-share/data/asr_datasets"
-    # build_text_corpus(base_path)
+    base_path = os.path.join(os.environ["HOME"], "data/asr_data")
+    build_text_corpus(base_path)
