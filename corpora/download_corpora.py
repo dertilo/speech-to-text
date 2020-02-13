@@ -41,7 +41,7 @@ def download_spanish_srl_corpora(path):
 def download_mailabs_corpus(path, file="es_ES.tgz"):
     url = "http://www.caito.de/data/Training/stt_tts"
     data_io.download_data(
-        url, file, path, unzip_it=True, verbose=True,
+        url, file, os.path.join(path,'mailabs'), unzip_it=True, verbose=True,
     )
 
 
@@ -53,8 +53,8 @@ def download_herioco_umsa(path):
 
 
 if __name__ == "__main__":
-    path = os.path.join(os.environ["HOME"], "data/asr_data")
+    path = os.path.join(os.environ["HOME"], "data/asr_data/SPANISH")
     download_herioco_umsa(path)
-    # download_librispeech_en()
+    download_librispeech_en(path)
     download_mailabs_corpus(path)
     download_spanish_srl_corpora(path)
