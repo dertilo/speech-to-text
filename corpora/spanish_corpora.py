@@ -1,3 +1,4 @@
+import random
 import sys
 
 import torchaudio
@@ -75,7 +76,7 @@ def common_voice_data(path):
 
 def common_voice_file2utt(path) -> Dict[str, str]:
     """
-    112127 validated spanish utterances
+    112127 validated spanish utterances minus 2 malpaudios
     """
     key2utt = {d["path"]: d["sentence"] for d in common_voice_data(path)}
     utts = list(Path(path).rglob("*.mp3"))
@@ -83,7 +84,13 @@ def common_voice_file2utt(path) -> Dict[str, str]:
     def get_key(f):
         return str(f).split("/")[-1]
 
-    return {str(f): key2utt[get_key(f)] for f in utts if get_key(f) in key2utt.keys()}
+    malpaudios = ["common_voice_es_19499901.mp3","common_voice_es_19499893.mp3"] # broken audios
+
+    return {
+        str(f): key2utt[get_key(f)]
+        for f in utts
+        if get_key(f) in key2utt.keys() and str(f).split("/")[-1] not in malpaudios
+    }
 
 
 def clean_text(text: str):
@@ -92,9 +99,9 @@ def clean_text(text: str):
 
 def build_text_corpus(base_path, corpus_file="spanish.txt"):
     """
-    num files 209142
-    num texts 209142
-    num unique texts 160319
+    num files 209140
+    num texts 209140
+    num unique texts 160317
 
     :param base_path:
     :param corpus_file:
@@ -122,7 +129,7 @@ def spanish_corpus(base_path, check_audio=False):
             print("file %s is broken!" % f)
             return False
 
-    print('building corpus')
+    print("building corpus")
     file2utt = {
         **read_openslr("%s/openslr_spanish" % base_path),
         **{
@@ -139,6 +146,16 @@ def spanish_corpus(base_path, check_audio=False):
     }
     return file2utt
 
+def build_train_eval_set(base_path):
+    data = list(
+        spanish_corpus(base_path, check_audio=False).items())
+    idx = list(range(len(data)))
+    random.shuffle(idx)
+    train_eval_split_idx = round(len(data) * 0.9)
+    train_file, eval_file = 'spanish_train.jsonl','spanish_eval.jsonl'
+    data_io.write_jsonl(train_file, [data[k] for k in idx[:train_eval_split_idx]])
+    data_io.write_jsonl(eval_file, [data[k] for k in idx[train_eval_split_idx:]])
+
 
 if __name__ == "__main__":
     # data = list(mailabs_data().values())
@@ -146,4 +163,5 @@ if __name__ == "__main__":
 
     # base_path = "/home/tilo/gunther"
     base_path = os.path.join(os.environ["HOME"], "data/asr_data")
-    build_text_corpus(base_path)
+    # build_text_corpus(base_path)
+    build_train_eval_set(base_path)
