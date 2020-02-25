@@ -93,10 +93,6 @@ def common_voice_file2utt(path) -> Dict[str, str]:
     }
 
 
-def clean_text(text: str):
-    return text.upper()
-
-
 def build_text_corpus(base_path, corpus_file="spanish.txt"):
     """
     num files 209140
@@ -140,8 +136,8 @@ def spanish_corpus(base_path, check_audio=False):
         **common_voice_file2utt("%s/common_voice_es" % base_path),
     }
     file2utt = {
-        f: clean_text(text)
-        for f, text in tqdm(file2utt.items())
+        f: text
+        for f, text in file2utt.items()
         if not check_audio or audio_is_loadable(f)
     }
     return file2utt
@@ -149,6 +145,9 @@ def spanish_corpus(base_path, check_audio=False):
 def build_train_eval_set(base_path):
     data = list(
         spanish_corpus(base_path, check_audio=False).items())
+
+    data = [[x.split(base_path)[-1] for x in t] for t in data]
+
     idx = list(range(len(data)))
     random.shuffle(idx)
     train_eval_split_idx = round(len(data) * 0.9)
@@ -183,5 +182,5 @@ if __name__ == "__main__":
     # base_path = "/home/tilo/gunther"
     base_path = os.path.join(os.environ["HOME"], "data/asr_data/SPANISH")
     # build_text_corpus(base_path)
-    # build_train_eval_set(base_path)
-    build_train_eval_csvs(base_path)
+    build_train_eval_set(base_path)
+    # build_train_eval_csvs(base_path)
