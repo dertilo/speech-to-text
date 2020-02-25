@@ -94,7 +94,7 @@ def common_voice_file2utt(path) -> Dict[str, str]:
 
 
 def clean_text(text: str):
-    return text.lower()
+    return text.upper()
 
 
 def build_text_corpus(base_path, corpus_file="spanish.txt"):
@@ -156,12 +156,32 @@ def build_train_eval_set(base_path):
     data_io.write_jsonl(train_file, [data[k] for k in idx[:train_eval_split_idx]])
     data_io.write_jsonl(eval_file, [data[k] for k in idx[train_eval_split_idx:]])
 
+def build_train_eval_csvs(base_path):
+    data = list(
+        spanish_corpus(base_path, check_audio=False).items())
+    def write_text_get_filename(file_name,text):
+        prefix = os.path.splitext(file_name)[0]
+        text_file_name = os.path.join(base_path,'spanish_texts',prefix)+'.txt'
+        data_io.write_file(text_file_name, text)
+        return text_file_name
+
+    audio_text_files = [(file_name,write_text_get_filename(file_name,text)) for file_name, text in data]
+    audio_text_files = [[os.path.join(base_path,x.split(base_path)[-1]) for x in t] for t in audio_text_files]
+
+    idx = list(range(len(audio_text_files)))
+    random.shuffle(idx)
+    train_eval_split_idx = round(len(audio_text_files) * 0.9)
+    train_file, eval_file = 'spanish_train.csv','spanish_eval.csv'
+    data_io.write_lines(train_file, [','.join(audio_text_files[k]) for k in idx[:train_eval_split_idx]])
+    data_io.write_lines(eval_file, [','.join(audio_text_files[k]) for k in idx[train_eval_split_idx:]])
+
 
 if __name__ == "__main__":
     # data = list(mailabs_data().values())
     # read_openslr('/home/tilo/gunther/data/asr_datasets/SLR72')
 
     # base_path = "/home/tilo/gunther"
-    base_path = os.path.join(os.environ["HOME"], "data/asr_data")
+    base_path = os.path.join(os.environ["HOME"], "data/asr_data/SPANISH")
     # build_text_corpus(base_path)
-    build_train_eval_set(base_path)
+    # build_train_eval_set(base_path)
+    build_train_eval_csvs(base_path)
