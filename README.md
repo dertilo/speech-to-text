@@ -4,6 +4,8 @@
 * [common-voice](https://voice.mozilla.org/en/datasets)
 * [CSS10](https://github.com/kyubyong/css10) -> 10 languages; LibriVox audiobooks
 * [medium-article](https://towardsdatascience.com/a-data-lakes-worth-of-audio-datasets-b45b88cd4ad)
+* [youtube-speech](https://research.google.com/audioset/dataset/speech.html)
+
 ### spanish datasets
 * [Heroico&USMA](https://www.openslr.org/39/)
 * [m-ailabs, catio](https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/): es_ES 	108h 34m
@@ -18,10 +20,13 @@
 * [uni-tuebingen-interviews](http://webapps.ael.uni-tuebingen.de/backbone-search/faces/search.jsp): do I have to scrape them?
 * [carlos](https://www.kaggle.com/carlfm01/120h-spanish-speech) : Librivox -> already contained in m-ailabs?
 
-### results
+# pretrained models
+* [tensorflow](https://github.com/tensorflow/models/tree/master/research/audioset)
+* [fairseq](https://github.com/pytorch/fairseq/tree/master/examples/wav2vec)
 
-![spanish-augmented](images/spanish_tempo_gain_augmented.png)
-* still don't know why validation-loss rises but avg-WER keeps falling
+
+# results
+
 #### 40 epochs
 | prediction | target
 | --- | ---
