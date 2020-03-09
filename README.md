@@ -1,4 +1,9 @@
 
+# datasets
+* [m-ailabs-speech-dataset](https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/):  LibriVox and Project Gutenberg
+* [common-voice](https://voice.mozilla.org/en/datasets)
+* [CSS10](https://github.com/kyubyong/css10) -> 10 languages; LibriVox audiobooks
+* [medium-article](https://towardsdatascience.com/a-data-lakes-worth-of-audio-datasets-b45b88cd4ad)
 ### spanish datasets
 * [Heroico&USMA](https://www.openslr.org/39/)
 * [m-ailabs, catio](https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/): es_ES 	108h 34m
@@ -7,6 +12,11 @@
 * [puerto-rico-spanish](https://www.openslr.org/74/)
 * [venezuelan-spanish](https://www.openslr.org/75/): 1.6GB
 * [argentinian-spanish](https://www.openslr.org/61/): not yet using it
+* [CSS10-spanish](https://www.kaggle.com/bryanpark/spanish-single-speaker-speech-dataset/data)
+    * already contained in m-ailabs? redundant?
+#### not yet downloaded
+* [uni-tuebingen-interviews](http://webapps.ael.uni-tuebingen.de/backbone-search/faces/search.jsp): do I have to scrape them?
+* [carlos](https://www.kaggle.com/carlfm01/120h-spanish-speech) : Librivox -> already contained in m-ailabs?
 
 ### results
 
@@ -35,7 +45,14 @@
 | fug alcalde del monecicio tobarto. | fue alcalde del municipio tovar.
 | epopuslotos los pagarapara de gomen. | los platos rotos los pagará tu madre.
 
-
+## signal augmentation
+* gain, tempo, pitch, reverberation, bandpass, white-ish-noise, interference
+#### WER (word error rate) on validation set
+![WER](images/WER_effect_of_signal_augmentation.png)
+ shown are WER on (10% evaluation data), augmenting the signal seems to be beneficial
+ #### validation loss
+![valid-loss](images/valid_loss_signal_augmented.png)
+ increasing validation loss indicates overfitting when trained on non-augmented data (still strange, that WER keeps falling) 
 ### libraries for feature-extraction 
 [wav2vec](https://github.com/pytorch/fairseq/tree/master/examples/wav2vec)
 
@@ -77,11 +94,21 @@
  
 #### [open-nmt](https://github.com/OpenNMT/OpenNMT-py)
 
-# datasets
-* [m-ailabs-speech-dataset](https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/)
-* [common-voice](https://voice.mozilla.org/en/datasets)
 
 # TODO
 
 * train wav2vec on spanish, use it in combination with deepspeech.pytorch
 * evaluate frequency-domain data augmentation
+
+### sox
+chorus
+
+    play original.wav chorus 0.6 0.9 40 0.2 0.75 1 -t
+
+echo
+
+     play original.wav echo 0.8 0.9 50 0.3
+     
+concat 
+
+    sox --combine concatenate augmented_* mix.wav
