@@ -1,13 +1,10 @@
 import os
 from pathlib import Path
-from typing import Tuple
-
+from typing import Dict
 from util import data_io
 
-HOME = os.environ["HOME"]
 
-
-def generate_audiofile_text_tuples(path:str)->Tuple[str,str]:
+def librispeech_corpus(path: str) -> Dict[str, str]:
     p = Path(path)
     audio_files = list(p.rglob("*.flac"))
 
@@ -25,9 +22,5 @@ def generate_audiofile_text_tuples(path:str)->Tuple[str,str]:
     def build_key(f):
         return str(f).split("/")[-1].replace(".flac", "")
 
-    for f in audio_files:
-        k = build_key(f)
-        if k in key2utt.keys():
-            text = key2utt[k]
-            audio_file = str(f)
-            yield audio_file, text
+    g = ((f, build_key(f)) for f in audio_files)
+    return {str(f): key2utt[k] for f, k in g if k in key2utt.keys()}

@@ -122,16 +122,16 @@ def check_for_broken_files(base_path):
     data_io.write_lines(os.path.join(base_path, "broken_files.txt"), b)
 
 
-def spanish_corpus(base_path):
+def spanish_corpus(base_path)->Dict[str,str]:
     print("building corpus")
     file2utt = {
         **read_openslr("%s/openslr_spanish" % base_path),
-        # **{
-        #     k: v.original_text
-        #     for k, v in mailabs_data("%s/mailabs" % base_path).items()
-        # },
-        # **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
-        # **common_voice_file2utt("%s/common_voice_es" % base_path),
+        **{
+            k: v.original_text
+            for k, v in mailabs_data("%s/mailabs" % base_path).items()
+        },
+        **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
+        **common_voice_file2utt("%s/common_voice_es" % base_path),
     }
     file2utt = {f: text for f, text in file2utt.items()}
     return file2utt
