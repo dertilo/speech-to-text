@@ -1,10 +1,4 @@
-import random
 import sys
-
-import torchaudio
-from tqdm import tqdm
-
-sys.path.append(".")
 import os
 from os.path import join
 from typing import NamedTuple, Dict
@@ -84,7 +78,10 @@ def common_voice_file2utt(path) -> Dict[str, str]:
     def get_key(f):
         return str(f).split("/")[-1]
 
-    malpaudios = ["common_voice_es_19499901.mp3","common_voice_es_19499893.mp3"] # broken audios
+    malpaudios = [
+        "common_voice_es_19499901.mp3",
+        "common_voice_es_19499893.mp3",
+    ]  # broken audios
 
     return {
         str(f): key2utt[get_key(f)]
@@ -110,12 +107,8 @@ def build_text_corpus(base_path, corpus_file="spanish.txt"):
     data_io.write_lines(corpus_file, set(file2utt.values()))
 
 
-def spanish_corpus(base_path, check_audio=False):
-    """
-
-    :param base_path:
-    :return:
-    """
+def check_for_broken_files(base_path):
+    import torchaudio
 
     def audio_is_loadable(f: str):
         try:
@@ -125,55 +118,23 @@ def spanish_corpus(base_path, check_audio=False):
             print("file %s is broken!" % f)
             return False
 
+    b = (f for f in spanish_corpus(base_path).keys() if not audio_is_loadable(f))
+    data_io.write_lines(os.path.join(base_path, "broken_files.txt"), b)
+
+
+def spanish_corpus(base_path):
     print("building corpus")
     file2utt = {
         **read_openslr("%s/openslr_spanish" % base_path),
-        **{
-            k: v.original_text
-            for k, v in mailabs_data("%s/mailabs" % base_path).items()
-        },
-        **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
-        **common_voice_file2utt("%s/common_voice_es" % base_path),
+        # **{
+        #     k: v.original_text
+        #     for k, v in mailabs_data("%s/mailabs" % base_path).items()
+        # },
+        # **read_HEROICOandUSMA("%s/LDC2006S37" % base_path),
+        # **common_voice_file2utt("%s/common_voice_es" % base_path),
     }
-    file2utt = {
-        f: text
-        for f, text in file2utt.items()
-        if not check_audio or audio_is_loadable(f)
-    }
+    file2utt = {f: text for f, text in file2utt.items()}
     return file2utt
-
-def build_train_eval_set(base_path):
-    data = list(
-        spanish_corpus(base_path, check_audio=False).items())
-
-    data = [[x.split(base_path)[-1] for x in t] for t in data]
-
-    idx = list(range(len(data)))
-    random.shuffle(idx)
-    train_eval_split_idx = round(len(data) * 0.9)
-    train_file, eval_file = 'spanish_train.jsonl','spanish_eval.jsonl'
-    data_io.write_jsonl(train_file, [data[k] for k in idx[:train_eval_split_idx]])
-    data_io.write_jsonl(eval_file, [data[k] for k in idx[train_eval_split_idx:]])
-
-def build_train_eval_csvs(base_path):
-    data = list(
-        spanish_corpus(base_path, check_audio=False).items())
-    def write_text_get_filename(file_name,text):
-        prefix = os.path.splitext(file_name)[0]
-        text_file_name = os.path.join(base_path,'spanish_texts',prefix)+'.txt'
-        data_io.write_file(text_file_name, text)
-        return text_file_name
-
-    audio_text_files = [(file_name,write_text_get_filename(file_name,text)) for file_name, text in data]
-    audio_text_files = [[os.path.join(base_path,x.split(base_path)[-1]) for x in t] for t in audio_text_files]
-
-    idx = list(range(len(audio_text_files)))
-    random.shuffle(idx)
-    train_eval_split_idx = round(len(audio_text_files) * 0.9)
-    train_file, eval_file = 'spanish_train.csv','spanish_eval.csv'
-    data_io.write_lines(train_file, [','.join(audio_text_files[k]) for k in idx[:train_eval_split_idx]])
-    data_io.write_lines(eval_file, [','.join(audio_text_files[k]) for k in idx[train_eval_split_idx:]])
-
 
 if __name__ == "__main__":
     # data = list(mailabs_data().values())
@@ -182,5 +143,5 @@ if __name__ == "__main__":
     # base_path = "/home/tilo/gunther"
     base_path = os.path.join(os.environ["HOME"], "data/asr_data/SPANISH")
     # build_text_corpus(base_path)
-    build_train_eval_set(base_path)
-    # build_train_eval_csvs(base_path)
+    d = spanish_corpus(base_path)
+    print()
