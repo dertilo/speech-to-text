@@ -7,7 +7,7 @@ from util import data_io
 HOME = os.environ["HOME"]
 
 
-def build_jsonl_dataset(raw_data_path,folder):
+def generate_audiofile_text_tuples(raw_data_path, folder):
 
     p = Path(join(raw_data_path, folder))
     audio_files = list(p.rglob("*.flac"))
@@ -26,11 +26,12 @@ def build_jsonl_dataset(raw_data_path,folder):
     def build_key(f):
         return str(f).split("/")[-1].replace(".flac", "")
 
-    g = ((build_key(f), f) for f in audio_files)
-    file_utt_g = (
-        {"audio-file": str(f), "text": key2utt[k]} for k, f in g if k in key2utt.keys()
-    )
-    data_io.write_jsonl(join(raw_data_path,folder+"_manifest.jsonl"), file_utt_g)
+    for f in audio_files:
+        k = build_key(f)
+        if k in key2utt.keys():
+            text = key2utt[k]
+            audio_file = str(f)
+            yield audio_file, text
 
 
 if __name__ == "__main__":
@@ -39,4 +40,8 @@ if __name__ == "__main__":
     raw_data_path = asr_path + "/ENGLISH/LibriSpeech"
 
     for folder in os.listdir(raw_data_path):
-        build_jsonl_dataset(raw_data_path,folder)
+        g = generate_audiofile_text_tuples(raw_data_path, folder)
+        file_utt_g = (
+            {"audio-file": audio_file, "text": text} for audio_file, text in g
+        )
+        data_io.write_jsonl(join(raw_data_path, folder + "_manifest.jsonl"), file_utt_g)
