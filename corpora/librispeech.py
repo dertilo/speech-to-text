@@ -2,6 +2,8 @@ import os
 from os.path import join
 from pathlib import Path
 
+import torchaudio
+from tqdm import tqdm
 from util import data_io
 
 HOME = os.environ["HOME"]
@@ -34,14 +36,29 @@ def generate_audiofile_text_tuples(raw_data_path, folder):
             yield audio_file, text
 
 
+MILLISECONDS_TO_SECONDS = 0.001
+
+
+def get_length(audio_file):
+    si, ei = torchaudio.info(audio_file)
+    length_ms = int(si.length / si.channels / si.rate / MILLISECONDS_TO_SECONDS)
+    return length_ms
+
+
 if __name__ == "__main__":
 
     asr_path = HOME + "/data/asr_data"
     raw_data_path = asr_path + "/ENGLISH/LibriSpeech"
 
-    for folder in os.listdir(raw_data_path):
+    for folder in next(os.walk(raw_data_path))[1]:
+        print(folder)
         g = generate_audiofile_text_tuples(raw_data_path, folder)
         file_utt_g = (
-            {"audio-file": audio_file, "text": text} for audio_file, text in g
+            {
+                "audio-file": audio_file,
+                "text": text,
+                "length_ms": get_length(audio_file),
+            }
+            for audio_file, text in tqdm(g)
         )
         data_io.write_jsonl(join(raw_data_path, folder + "_manifest.jsonl"), file_utt_g)
