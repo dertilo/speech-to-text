@@ -7,7 +7,7 @@ from util import data_io
 def librispeech_corpus(path: str) -> Dict[str, str]:
     p = Path(path)
     audio_files = list(p.rglob("*.flac"))
-
+    print('in %s found %d audio-files'%(path,len(audio_files)))
     def parse_line(l):
         s = l.split(" ")
         return s[0], " ".join(s[1:])
