@@ -5,6 +5,7 @@ from util import data_io
 
 
 def librispeech_corpus(path: str) -> Dict[str, str]:
+    ''':return dictionary where keys are filenames and values are utterances'''
     p = Path(path)
     audio_files = list(p.rglob("*.flac"))
     print('in %s found %d audio-files'%(path,len(audio_files)))
@@ -23,4 +24,5 @@ def librispeech_corpus(path: str) -> Dict[str, str]:
         return str(f).split("/")[-1].replace(".flac", "")
 
     g = ((f, build_key(f)) for f in audio_files)
-    return {str(f): key2utt[k] for f, k in g if k in key2utt.keys()}
+    file2utt = {str(f): key2utt[k] for f, k in g if k in key2utt.keys()}
+    return file2utt
