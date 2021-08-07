@@ -1,6 +1,7 @@
 import itertools
+import os
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import librosa
 import numpy as np
@@ -32,14 +33,34 @@ class GreedyDecoder:
 
         return self
 
+    @property
+    def silence_str(self):
+        return self.tgt_dict[self.silence]
+
     def get_prefix(self, idxs):
         """Normalize tokens by handling CTC blank, ASG replabels, etc."""
-        idxs = (g[0] for g in itertools.groupby(idxs))
-        idxs = filter(lambda x: x != self.blank, idxs)
-        prefix_answer = ""
-        for i in list(idxs):
-            prefix_answer += self.tgt_dict[i]
-        return prefix_answer.replace("|", " ").strip()
+        idxs = (
+            (next(g)[0], k)
+            for k, g in itertools.groupby(list(enumerate(idxs)), key=lambda x: x[1])
+        )
+        seqidx_vocabidx = list(filter(lambda x: x[1] != self.blank, idxs))
+        print(f"seqidx_vocabidx: {seqidx_vocabidx}")
+        seqidx_vocabidx = self.strip_startend_silence(seqidx_vocabidx)
+        print(f"seqidx_vocabidx: {seqidx_vocabidx}")
+        prefix_answer = "".join([self.tgt_dict[i] for _, i in seqidx_vocabidx])
+        assert not (
+            prefix_answer.startswith(self.silence_str)
+            or prefix_answer.endswith(self.silence_str)
+        )
+        seqidx = [i for i, _ in seqidx_vocabidx]
+        return {"text": prefix_answer.replace(self.silence_str, " "), "seq_idx": seqidx}
+
+    def strip_startend_silence(self, seqidx_vocabidx):
+        while seqidx_vocabidx[0][1] == self.silence:
+            seqidx_vocabidx = seqidx_vocabidx[1:]
+        while seqidx_vocabidx[-1][1] == self.silence:
+            seqidx_vocabidx = seqidx_vocabidx[:-1]
+        return seqidx_vocabidx
 
     def decode(self, emissions):
         B, T, N = emissions.size()
@@ -64,10 +85,17 @@ class SpeechToText:
 
     def transcribe_audio_array(
         self, audio: np.ndarray, input_sample_rate: Optional[int] = None
-    ) -> str:
+    )->Tuple[str,List[int]]:
+
         logits = self._calc_logits(audio, input_sample_rate)
+        return self.decode_with_timestamps(logits, len(audio))
+
+    def decode_with_timestamps(self, logits, input_len):
         transcript = self.decoder.decode(logits)[0]
-        return transcript
+        array_idx = [
+            round(input_len / logits.size()[1] * i) for i in transcript["seq_idx"]
+        ]
+        return transcript["text"], array_idx
 
     def _calc_logits(self, audio: np.ndarray, input_sample_rate: Optional[int] = None):
 
@@ -103,6 +131,8 @@ class SpeechToText:
 
 
 if __name__ == "__main__":
+    # idxs = list((k,list(g)) for k,g in itertools.groupby(list(enumerate("thisss isss a ttteeest")), key=lambda x: x[1]))
+    # print(idxs)
     audio = AudioSegment.from_file(
         "/home/tilo/data/asr_data/GERMAN/tuda/raw/german-speechdata-package-v2/dev/2015-02-09-15-18-46_Samson.wav",
         target_sr=TARGET_SAMPLE_RATE,
@@ -113,4 +143,13 @@ if __name__ == "__main__":
     asr = SpeechToText(
         model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
     ).init()
-    print(asr.transcribe_audio_array(audio.samples, audio.sample_rate))
+    array = audio.samples
+    print(f"array-shape: {array.shape}")
+    logits_file = "/tmp/logits.npy"
+    if not os.path.isfile(logits_file):
+        assert False
+        logits = asr._calc_logits(array, audio.sample_rate)
+        np.save(logits_file, logits)
+    logits = torch.from_numpy(np.load(logits_file))
+    print(asr.decode_with_timestamps(logits, len(array)))
+    # print(asr.transcribe_audio_array(array, audio.sample_rate))
