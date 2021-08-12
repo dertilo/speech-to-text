@@ -14,6 +14,24 @@ TARGET_SAMPLE_RATE = 16_000
 
 
 @dataclass
+class LetterIdx:
+    letter: str
+    index: int
+
+
+@dataclass
+class AlignedTranscript:
+    seq: List[LetterIdx]
+
+    @property
+    def text(self):
+        return "".join([x.letter for x in self.seq])
+
+    @property
+    def array_idx(self):
+        return [x.index for x in self.seq]
+
+@dataclass
 class GreedyDecoder:
     tgt_dict: List[str]
 
@@ -85,7 +103,7 @@ class SpeechToText:
 
     def transcribe_audio_array(
         self, audio: np.ndarray, input_sample_rate: Optional[int] = None
-    )->Tuple[str,List[int]]:
+    ) -> AlignedTranscript:
 
         logits = self._calc_logits(audio, input_sample_rate)
         return self.decode_with_timestamps(logits, len(audio))
@@ -95,7 +113,9 @@ class SpeechToText:
         array_idx = [
             round(input_len / logits.size()[1] * i) for i in transcript["seq_idx"]
         ]
-        return transcript["text"], array_idx
+        return AlignedTranscript(
+            seq=[LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)]
+        )
 
     def _calc_logits(self, audio: np.ndarray, input_sample_rate: Optional[int] = None):
 
