@@ -27,39 +27,46 @@ if __name__ == "__main__":
         model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
     ).init()
     sm = difflib.SequenceMatcher()
-    step = round(TARGET_SAMPLE_RATE * 5)
+    step = round(TARGET_SAMPLE_RATE * 2)
     previous: Optional[AlignedTranscript] = None
     letters: List[LetterIdx] = []
 
     for idx in range(0, len(audio.samples), step):
-        array = audio.samples[idx : round(idx + 2 * step)]
+        segm_end_idx = round(idx + 2 * step)
+        if len(audio.samples) - segm_end_idx < step:
+            array = audio.samples[idx:]
+        else:
+            array = audio.samples[idx:segm_end_idx]
+
+        if len(array) < step:
+            continue
+
         ts: AlignedTranscript = asr.transcribe_audio_array(array, audio.sample_rate)
         if previous is not None:
             right = AlignedTranscript(seq=[s for s in ts.seq if s.index < step])
             left = AlignedTranscript(seq=[s for s in previous.seq if s.index >= step])
-            print(previous.text)
             sm.set_seqs(left.text, right.text)
             matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+            aligned_idx = [(m.a + k, m.b + k) for m in matches for k in range(m.size)]
             match_idx = np.argmin(
-                [np.abs(m.a - round(len(left.text) / 2)) for m in matches]
+                [np.abs(i - round(len(left.text) / 2)) for i, _ in aligned_idx]
             )
-            m = matches[match_idx]
-            print(f"{left.text[m.a:m.a + m.size]}->{right.text[m.b:m.b + m.size]}")
-            glue_idx_left = m.a
-            glue_idx_right = m.b
+            glue_left, glue_right = aligned_idx[match_idx]
+            glue_idx_left = left.seq[glue_left].index
+            glue_idx_right = right.seq[glue_right].index
             letters_right = [
                 LetterIdx(x.letter, x.index + idx)
                 for x in right.seq
-                if x.index < glue_idx_right
+                if x.index > glue_idx_right
             ]
             letters_left = [
                 LetterIdx(x.letter, x.index + idx - step)
                 for x in left.seq
-                if x.index >= glue_idx_left
+                if x.index <= glue_idx_left
             ]
             letters.extend(letters_left)
             letters.extend(letters_right)
-            # print(f"left: {left.text}, right: {right.text}")
+            print(f"left: {left.text}, right: {right.text}")
             print(
                 f"GLUED left: {AlignedTranscript(letters_left).text}, right: {AlignedTranscript(letters_right).text}"
             )
