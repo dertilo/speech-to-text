@@ -29,7 +29,6 @@ if __name__ == "__main__":
     asr = SpeechToText(
         model_name="jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
     ).init()
-    sm = difflib.SequenceMatcher()
     output_dir = "transcripts"
     if os.path.isdir(output_dir):
         shutil.rmtree(output_dir)
@@ -57,4 +56,9 @@ if __name__ == "__main__":
         data_io.write_lines(
             f"{output_dir}/{video_file.stem}.csv",
             [f"{l.letter}\t{l.index}" for l in transcript.seq],
+        )
+
+        data_io.write_lines(
+            f"{output_dir}/{video_file.stem}.txt",
+            ["".join([l.letter for l in transcript.seq])],
         )

@@ -3,6 +3,8 @@ import os
 import shutil
 import sys
 
+from scipy.interpolate import interp1d
+
 sys.path.append(".")
 
 from pathlib import Path
@@ -77,44 +79,42 @@ def generate_block(letters: List[LetterIdx]):
 
 if __name__ == "__main__":
 
-    import subprocess
-
-    video_dir = sys.argv[1]
-    asr = SpeechToText(
-        model_name="jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
-    ).init()
     sm = difflib.SequenceMatcher()
     subtitles_dir = "subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
     os.makedirs(subtitles_dir)
 
-    for video_file in Path(video_dir).glob("*.mp4"):
-        file_name = video_file.stem
-        with NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
-            command = f"ffmpeg -y -i '{video_file}' -ab 160k -ac 1 -ar 16000 -vn {tmp_file.name}"  #
-            subprocess.call(command, shell=True)
-            # with NamedTemporaryFile(suffix=".wav", delete=True) as processed_tmp_file:
-            #
-            #     command = f"sox {tmp_file.name} {processed_tmp_file.name} tempo 0.9" #
-            #     subprocess.call(command, shell=True)
+    for transcript_file in Path("transcripts").glob("*.csv"):
+        file_name = transcript_file.stem
+        g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
+        letters = [LetterIdx(l, int(i)) for l, i in g]
+        raw_transcript = "".join([l.letter for l in letters])
 
-            audio = AudioSegment.from_file(
-                tmp_file.name,
-                target_sr=TARGET_SAMPLE_RATE,
-                offset=0.0,
-                trim=False,
-            )
-        step = round(TARGET_SAMPLE_RATE * 10)
-        arrays = generate_arrays(audio.samples, step)
-        aligned_transcripts = [
-            (idx, asr.transcribe_audio_array(array, TARGET_SAMPLE_RATE))
-            for idx, array in arrays
-        ]
-        transcript = glue_transcripts(aligned_transcripts, step=step)
+        corrected_transcript_file = str(transcript_file).replace(".csv", ".txt")
+        if os.path.isfile(corrected_transcript_file):
+            corrected_transcript = list(data_io.read_lines(corrected_transcript_file))[
+                0
+            ]
+            if corrected_transcript != "".join([l.letter for l in letters]):
+                sm.set_seqs(raw_transcript, corrected_transcript)
+                matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+
+                matched2index = {
+                    m.b + k: letters[m.a + k].index
+                    for m in matches
+                    for k in range(m.size)
+                }
+                x = list(matched2index.keys())
+                y = list(matched2index.values())
+                interp_fun = interp1d(x, y)
+                letters = [
+                    LetterIdx(l, int(matched2index.get(k, interp_fun(k))))
+                    for k, l in enumerate(corrected_transcript)
+                ]
 
         srt_blocks = [
             build_srt_block(idx, block, TARGET_SAMPLE_RATE)
-            for idx, block in enumerate(generate_block(transcript.seq))
+            for idx, block in enumerate(generate_block(letters))
         ]
-        data_io.write_lines(f"{subtitles_dir}/{video_file.stem}.srt", srt_blocks)
+        data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
