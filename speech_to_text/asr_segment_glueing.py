@@ -66,7 +66,7 @@ def glue_transcripts(
     return transcript
 
 
-def generate_arrays(samples: np.ndarray):
+def generate_arrays(samples: np.ndarray,step):
     for idx in range(0, len(samples), step):
         segm_end_idx = round(idx + 2 * step)
         next_segment_too_small = len(samples) - segm_end_idx < step
