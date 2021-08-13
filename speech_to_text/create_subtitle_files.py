@@ -77,7 +77,7 @@ if __name__ == '__main__':
                 trim=False,
             )
             print(audio.samples.shape)
-        step = round(TARGET_SAMPLE_RATE * 2)
+        step = round(TARGET_SAMPLE_RATE * 5)
         arrays = generate_arrays(audio.samples,step)
         aligned_transcripts = [
             (idx, asr.transcribe_audio_array(array, TARGET_SAMPLE_RATE)) for idx, array in

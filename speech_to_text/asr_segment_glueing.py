@@ -22,6 +22,8 @@ def glue_transcripts(
     ), [len(x.seq) for _, x in aligned_transcripts]
     assert all_but_last_must_be_of_same_len
 
+    sm = difflib.SequenceMatcher()
+
     previous: Optional[AlignedTranscript] = None
     letters: List[LetterIdx] = []
     for idx, ts in aligned_transcripts:
@@ -92,11 +94,10 @@ if __name__ == "__main__":
     asr = SpeechToText(
         model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
     ).init()
-    sm = difflib.SequenceMatcher()
     sample_rate = audio.sample_rate
     step = round(TARGET_SAMPLE_RATE * 2)
 
-    arrays = generate_arrays(audio.samples)
+    arrays = generate_arrays(audio.samples,step)
     aligned_transcripts = [
         (idx, asr.transcribe_audio_array(array, sample_rate)) for idx, array in arrays
     ]

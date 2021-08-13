@@ -62,6 +62,7 @@ class GreedyDecoder:
             for k, g in itertools.groupby(list(enumerate(idxs)), key=lambda x: x[1])
         )
         seqidx_vocabidx = list(filter(lambda x: x[1] != self.blank, idxs))
+        assert len(seqidx_vocabidx)>0
         seqidx_vocabidx = self.strip_startend_silence(seqidx_vocabidx)
         prefix_answer = "".join([self.tgt_dict[i] for _, i in seqidx_vocabidx])
         assert not (
@@ -71,7 +72,7 @@ class GreedyDecoder:
         seqidx = [i for i, _ in seqidx_vocabidx]
         return {"text": prefix_answer.replace(self.silence_str, " "), "seq_idx": seqidx}
 
-    def strip_startend_silence(self, seqidx_vocabidx):
+    def strip_startend_silence(self, seqidx_vocabidx:List[Tuple[int,int]]):
         while seqidx_vocabidx[0][1] == self.silence:
             seqidx_vocabidx = seqidx_vocabidx[1:]
         while seqidx_vocabidx[-1][1] == self.silence:
