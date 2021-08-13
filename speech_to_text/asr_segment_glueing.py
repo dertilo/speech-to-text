@@ -15,33 +15,18 @@ from speech_to_text.transcribe_audio import SpeechToText, AlignedTranscript, Let
 
 TARGET_SAMPLE_RATE = 16_000
 
-if __name__ == "__main__":
 
-    audio = AudioSegment.from_file(
-        "/home/tilo/data/asr_data/GERMAN/tuda/raw/german-speechdata-package-v2/dev/2015-02-09-15-08-14_Samson.wav",
-        target_sr=TARGET_SAMPLE_RATE,
-        offset=0.0,
-        trim=False,
+def glue_transcripts(
+    aligned_transcripts: List[AlignedTranscript], step=round(TARGET_SAMPLE_RATE * 2)
+):
+    all_but_last_must_be_of_same_len = (
+        len(set((len(x.seq) for x in aligned_transcripts[:-1]))) == 1
     )
-    asr = SpeechToText(
-        model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
-    ).init()
-    sm = difflib.SequenceMatcher()
-    step = round(TARGET_SAMPLE_RATE * 2)
+    assert all_but_last_must_be_of_same_len
+
     previous: Optional[AlignedTranscript] = None
     letters: List[LetterIdx] = []
-
-    for idx in range(0, len(audio.samples), step):
-        segm_end_idx = round(idx + 2 * step)
-        if len(audio.samples) - segm_end_idx < step:
-            array = audio.samples[idx:]
-        else:
-            array = audio.samples[idx:segm_end_idx]
-
-        if len(array) < step:
-            continue
-
-        ts: AlignedTranscript = asr.transcribe_audio_array(array, audio.sample_rate)
+    for idx,ts in enumerate(aligned_transcripts):
         if previous is not None:
             right = AlignedTranscript(seq=[s for s in ts.seq if s.index < step])
             left = AlignedTranscript(seq=[s for s in previous.seq if s.index >= step])
@@ -78,6 +63,41 @@ if __name__ == "__main__":
         previous = ts
 
     transcript = AlignedTranscript(seq=letters)
+    return transcript
+
+def generate_arrays(samples:np.ndarray):
+    for idx in range(0, len(samples), step):
+        segm_end_idx = round(idx + 2 * step)
+        next_segment_too_small = len(samples) - segm_end_idx < step
+        if next_segment_too_small:
+            array = samples[idx:] # merge this one with next
+        else:
+            array = samples[idx:segm_end_idx]
+
+        yield array
+
+        if len(array) < step:
+            break
+
+
+if __name__ == "__main__":
+
+    audio = AudioSegment.from_file(
+        "/home/tilo/data/asr_data/GERMAN/tuda/raw/german-speechdata-package-v2/dev/2015-02-09-15-08-14_Samson.wav",
+        target_sr=TARGET_SAMPLE_RATE,
+        offset=0.0,
+        trim=False,
+    )
+    asr = SpeechToText(
+        model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
+    ).init()
+    sm = difflib.SequenceMatcher()
+    sample_rate=audio.sample_rate
+    step = round(TARGET_SAMPLE_RATE * 2)
+
+    arrays=generate_arrays(audio.samples)
+    aligned_transcripts = [asr.transcribe_audio_array(array, sample_rate) for array in arrays]
+    transcript = glue_transcripts(aligned_transcripts, step=step)
     print(transcript.text)
     # print(transcript.array_idx)
     # print([i/TARGET_SAMPLE_RATE for i in transcript.array_idx])
