@@ -2,13 +2,9 @@ import sys
 
 sys.path.append(".")
 import difflib
-import itertools
-from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
-import librosa
 import numpy as np
-import torch
 from nemo.collections.asr.parts.preprocessing import AudioSegment
 
 from speech_to_text.transcribe_audio import SpeechToText, AlignedTranscript, LetterIdx
@@ -17,18 +13,18 @@ TARGET_SAMPLE_RATE = 16_000
 
 
 def glue_transcripts(
-    aligned_transcripts: List[AlignedTranscript],
+    aligned_transcripts: List[Tuple[int, AlignedTranscript]],
     step=round(TARGET_SAMPLE_RATE * 2),
     debug=False,
 ):
     all_but_last_must_be_of_same_len = (
-        len(set((len(x.seq) for x in aligned_transcripts[:-1]))) == 1
-    ), [len(x.seq) for x in aligned_transcripts]
+        len(set((len(x.seq) for _, x in aligned_transcripts[:-1]))) == 1
+    ), [len(x.seq) for _, x in aligned_transcripts]
     assert all_but_last_must_be_of_same_len
 
     previous: Optional[AlignedTranscript] = None
     letters: List[LetterIdx] = []
-    for idx, ts in enumerate(aligned_transcripts):
+    for idx, ts in aligned_transcripts:
         if previous is not None:
             right = AlignedTranscript(seq=[s for s in ts.seq if s.index < step])
             left = AlignedTranscript(seq=[s for s in previous.seq if s.index >= step])
@@ -80,7 +76,7 @@ def generate_arrays(samples: np.ndarray):
             array = samples[idx:segm_end_idx]
 
         if len(array) >= step:
-            yield array
+            yield idx, array
         else:
             break
 
@@ -102,9 +98,7 @@ if __name__ == "__main__":
 
     arrays = generate_arrays(audio.samples)
     aligned_transcripts = [
-        asr.transcribe_audio_array(array, sample_rate) for array in arrays
+        (idx, asr.transcribe_audio_array(array, sample_rate)) for idx, array in arrays
     ]
     transcript = glue_transcripts(aligned_transcripts, step=step)
     print(transcript.text)
-    # print(transcript.array_idx)
-    # print([i/TARGET_SAMPLE_RATE for i in transcript.array_idx])
