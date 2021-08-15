@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package grpc_streaming;
+
+message TranscribeStreamRequest {
+    bytes audio_chunk = 1;
+}
+
+
+message TranscribeStreamResponse {
+    string transcription = 1;
+    bool is_final = 2;
+}
+
+service Speech2Text {
+    rpc transcribe_stream (stream TranscribeStreamRequest) returns (stream TranscribeStreamResponse) {}
+}
