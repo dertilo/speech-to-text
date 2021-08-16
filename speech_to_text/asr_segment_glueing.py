@@ -7,9 +7,12 @@ from typing import Optional, List, Tuple
 import numpy as np
 from nemo.collections.asr.parts.preprocessing import AudioSegment
 
-from speech_to_text.transcribe_audio import SpeechToText, AlignedTranscript, LetterIdx
-
-TARGET_SAMPLE_RATE = 16_000
+from speech_to_text.transcribe_audio import (
+    SpeechToText,
+    AlignedTranscript,
+    LetterIdx,
+    TARGET_SAMPLE_RATE,
+)
 
 
 def glue_transcripts(
@@ -68,7 +71,7 @@ def glue_transcripts(
     return transcript
 
 
-def generate_arrays(samples: np.ndarray,step):
+def generate_arrays(samples: np.ndarray, step):
     for idx in range(0, len(samples), step):
         segm_end_idx = round(idx + 2 * step)
         next_segment_too_small = len(samples) - segm_end_idx < step
@@ -83,23 +86,28 @@ def generate_arrays(samples: np.ndarray,step):
             break
 
 
-if __name__ == "__main__":
-
+def transcribe_audio_file(asr: SpeechToText, file, step_dur=10):  # seconds
     audio = AudioSegment.from_file(
-        "/home/tilo/data/asr_data/GERMAN/tuda/raw/german-speechdata-package-v2/dev/2015-02-09-15-08-14_Samson.wav",
+        file,
         target_sr=TARGET_SAMPLE_RATE,
         offset=0.0,
         trim=False,
     )
-    asr = SpeechToText(
-        model_name="jonatasgrosman/wav2vec2-large-xlsr-53-german",
-    ).init()
-    sample_rate = audio.sample_rate
-    step = round(TARGET_SAMPLE_RATE * 2)
-
-    arrays = generate_arrays(audio.samples,step)
+    step = round(TARGET_SAMPLE_RATE * step_dur)
+    arrays = generate_arrays(audio.samples, step)
     aligned_transcripts = [
-        (idx, asr.transcribe_audio_array(array, sample_rate)) for idx, array in arrays
+        (idx, asr.transcribe_audio_array(array, TARGET_SAMPLE_RATE))
+        for idx, array in arrays
     ]
     transcript = glue_transcripts(aligned_transcripts, step=step)
+    return transcript
+
+
+if __name__ == "__main__":
+    model = sys.argv[1]
+    file = sys.argv[2]
+    asr = SpeechToText(
+        model_name=model,
+    ).init()
+    transcript = transcribe_audio_file(asr, file)
     print(transcript.text)
