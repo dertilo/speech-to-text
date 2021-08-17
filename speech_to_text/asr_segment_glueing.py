@@ -67,6 +67,7 @@ def glue_transcripts(
             letters.extend([x for x in right.seq])
         previous = ts
 
+    letters.extend([s for s in previous.seq if s.index >= step])
     transcript = AlignedTranscript(seq=letters)
     return transcript
 
@@ -77,13 +78,11 @@ def generate_arrays(samples: np.ndarray, step):
         next_segment_too_small = len(samples) - segm_end_idx < step
         if next_segment_too_small:
             array = samples[idx:]  # merge this one with next
+            yield idx, array
+            break
         else:
             array = samples[idx:segm_end_idx]
-
-        if len(array) >= step:
             yield idx, array
-        else:
-            break
 
 
 def transcribe_audio_file(asr: SpeechToText, file, step_dur=10):  # seconds
