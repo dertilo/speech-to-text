@@ -13,7 +13,20 @@ from speech_to_text.asr_segment_glueing import transcribe_audio_file
 
 from speech_to_text.transcribe_audio import (
     SpeechToText,
+    AlignedTranscript,
 )
+
+
+def convert_to_wav_transcribe(asr, file) -> AlignedTranscript:
+    with NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
+        command = (
+            f"ffmpeg -y -i '{file}' -ab 160k -ac 1 -ar 16000 -vn {tmp_file.name}"  #
+        )
+        subprocess.call(command, shell=True)
+
+        transcript = transcribe_audio_file(asr, tmp_file.name)
+    return transcript
+
 
 if __name__ == "__main__":
 
@@ -31,20 +44,15 @@ if __name__ == "__main__":
         model_name=model,
     ).init()
 
-    for video_file in Path(input_dir).glob("*.m*"):  # mp4, m4a
-        file_name = video_file.stem
-        with NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
-            command = f"ffmpeg -y -i '{video_file}' -ab 160k -ac 1 -ar 16000 -vn {tmp_file.name}"  #
-            subprocess.call(command, shell=True)
-
-            transcript = transcribe_audio_file(asr, tmp_file.name)
-
+    for file in Path(input_dir).glob("*.wav"):  # mp4, m4a
+        transcript = transcribe_audio_file(asr, file)
+        # transcript = convert_to_wav_transcribe(asr, file)
         data_io.write_lines(
-            f"{output_dir}/{video_file.stem}.csv",
+            f"{output_dir}/{file.stem}.csv",
             [f"{l.letter}\t{l.index}" for l in transcript.seq],
         )
 
         data_io.write_lines(
-            f"{output_dir}/{video_file.stem}.txt",
+            f"{output_dir}/{file.stem}.txt",
             ["".join([l.letter for l in transcript.seq])],
         )

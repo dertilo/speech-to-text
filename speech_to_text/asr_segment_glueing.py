@@ -19,7 +19,7 @@ def glue_transcripts(
     aligned_transcripts: List[Tuple[int, AlignedTranscript]],
     step=round(TARGET_SAMPLE_RATE * 2),
     debug=False,
-):
+)->AlignedTranscript:
     all_but_last_must_be_of_same_len = (
         len(set((len(x.seq) for _, x in aligned_transcripts[:-1]))) == 1
     ), [len(x.seq) for _, x in aligned_transcripts]
