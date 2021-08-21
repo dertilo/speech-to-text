@@ -17,7 +17,7 @@ from speech_to_text.asr_segment_glueing import generate_arrays, glue_transcripts
 import difflib
 import itertools
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Generator
 
 import librosa
 import numpy as np
@@ -49,8 +49,12 @@ def build_srt_block(idx: int, letters: List[LetterIdx], sample_rate):
 
 
 # data_io.write_lines(f"sub.srt",[])
-def generate_block(letters: List[LetterIdx]):
-    buffer = []
+def cut_transcript_at_pauses(letters: List[LetterIdx]) -> Generator[List[LetterIdx]]:
+    """
+    for better visualization in video cut aligned transcript into segments separated ideally by pauses,
+    so that transcitions between subtitle-block are not too anoying
+    """
+    buffer: List[LetterIdx] = []
     block_end = letters[0].index
 
     for k, l in enumerate(letters):
@@ -79,13 +83,15 @@ def generate_block(letters: List[LetterIdx]):
 
 if __name__ == "__main__":
 
+    transript_dir = sys.argv[1]
+
     sm = difflib.SequenceMatcher()
-    subtitles_dir = "subtitles"
+    subtitles_dir = f"{transript_dir}/subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
     os.makedirs(subtitles_dir)
 
-    for transcript_file in Path("transcripts").glob("*.csv"):
+    for transcript_file in Path(transript_dir).glob("*.csv"):
         file_name = transcript_file.stem
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
         letters = [LetterIdx(l, int(i)) for l, i in g]
@@ -115,6 +121,6 @@ if __name__ == "__main__":
 
         srt_blocks = [
             build_srt_block(idx, block, TARGET_SAMPLE_RATE)
-            for idx, block in enumerate(generate_block(letters))
+            for idx, block in enumerate(cut_transcript_at_pauses(letters))
         ]
         data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
