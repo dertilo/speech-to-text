@@ -8,25 +8,13 @@ from scipy.interpolate import interp1d
 sys.path.append(".")
 
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 from util import data_io
 
-from speech_to_text.asr_segment_glueing import generate_arrays, glue_transcripts
-
 import difflib
-import itertools
-from dataclasses import dataclass
-from typing import Optional, List, Tuple, Generator
-
-import librosa
-import numpy as np
-import torch
-from nemo.collections.asr.parts.preprocessing import AudioSegment
+from typing import List, Generator
 
 from speech_to_text.transcribe_audio import (
-    SpeechToText,
-    AlignedTranscript,
     LetterIdx,
     TARGET_SAMPLE_RATE,
 )
@@ -49,7 +37,9 @@ def build_srt_block(idx: int, letters: List[LetterIdx], sample_rate):
 
 
 # data_io.write_lines(f"sub.srt",[])
-def cut_transcript_at_pauses(letters: List[LetterIdx]) -> Generator[List[LetterIdx]]:
+def cut_transcript_at_pauses(
+    letters: List[LetterIdx],
+) -> Generator[List[LetterIdx], None, None]:
     """
     for better visualization in video cut aligned transcript into segments separated ideally by pauses,
     so that transcitions between subtitle-block are not too anoying
@@ -81,16 +71,12 @@ def cut_transcript_at_pauses(letters: List[LetterIdx]) -> Generator[List[LetterI
     yield buffer
 
 
-if __name__ == "__main__":
-
-    transript_dir = sys.argv[1]
-
+def main(transript_dir):
     sm = difflib.SequenceMatcher()
     subtitles_dir = f"{transript_dir}/subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
     os.makedirs(subtitles_dir)
-
     for transcript_file in Path(transript_dir).glob("*.csv"):
         file_name = transcript_file.stem
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
@@ -103,24 +89,40 @@ if __name__ == "__main__":
                 0
             ]
             if corrected_transcript != "".join([l.letter for l in letters]):
-                sm.set_seqs(raw_transcript, corrected_transcript)
-                matches = [m for m in sm.get_matching_blocks() if m.size > 0]
-
-                matched2index = {
-                    m.b + k: letters[m.a + k].index
-                    for m in matches
-                    for k in range(m.size)
-                }
-                x = list(matched2index.keys())
-                y = list(matched2index.values())
-                interp_fun = interp1d(x, y)
-                letters = [
-                    LetterIdx(l, int(matched2index.get(k, interp_fun(k))))
-                    for k, l in enumerate(corrected_transcript)
-                ]
+                letters = incorporate_corrections(
+                    corrected_transcript, raw_transcript, letters, sm
+                )
 
         srt_blocks = [
             build_srt_block(idx, block, TARGET_SAMPLE_RATE)
             for idx, block in enumerate(cut_transcript_at_pauses(letters))
         ]
         data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
+
+
+def incorporate_corrections(
+    corrected_transcript: str,
+    raw_transcript: str,
+    letters: List[LetterIdx],
+    sm: difflib.SequenceMatcher,
+):
+    sm.set_seqs(raw_transcript, corrected_transcript)
+    matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+    matched2index = {
+        m.b + k: letters[m.a + k].index for m in matches for k in range(m.size)
+    }
+    x = list(matched2index.keys())
+    y = list(matched2index.values())
+    interp_fun = interp1d(x, y)
+    letters = [
+        LetterIdx(l, int(matched2index.get(k, interp_fun(k))))
+        for k, l in enumerate(corrected_transcript)
+    ]
+    return letters
+
+
+if __name__ == "__main__":
+
+    transript_dir = sys.argv[1]
+
+    main(transript_dir)
