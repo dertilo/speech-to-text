@@ -21,15 +21,20 @@ class LetterIdx:
 
 @dataclass
 class AlignedTranscript:
-    seq: List[LetterIdx]
+    letters: List[LetterIdx]
+    sample_rate:int
 
     @property
     def text(self):
-        return "".join([x.letter for x in self.seq])
+        return "".join([x.letter for x in self.letters])
 
     @property
     def array_idx(self):
-        return [x.index for x in self.seq]
+        return [x.index for x in self.letters]
+
+    @property
+    def timestamps(self):
+        return [l.index/self.sample_rate for l in self.letters]
 
 @dataclass
 class GreedyDecoder:
@@ -105,15 +110,16 @@ class SpeechToText:
     ) -> AlignedTranscript:
 
         logits = self._calc_logits(audio, input_sample_rate)
-        return self.decode_with_timestamps(logits, len(audio))
+        return self.decode_with_timestamps(logits, len(audio),input_sample_rate)
 
-    def decode_with_timestamps(self, logits, input_len):
+    def decode_with_timestamps(self, logits, input_len,sample_rate):
         transcript = self.decoder.decode(logits)[0]
         array_idx = [
             round(input_len / logits.size()[1] * i) for i in transcript["seq_idx"]
         ]
         return AlignedTranscript(
-            seq=[LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)]
+            letters=[LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)],
+            sample_rate=sample_rate
         )
 
     def _calc_logits(self, audio: np.ndarray, input_sample_rate: Optional[int] = None):
