@@ -81,11 +81,14 @@ def main(transript_dir):
     for transcript_file in Path(transript_dir).glob("*.csv"):
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
         letters = [LetterIdx(l, int(i)) for l, i in g]
+        assert all(
+            (letters[k].index > letters[k - 1].index for k in range(1, len(letters)))
+        )
 
         c_files = sorted(
             [
                 c_file
-                for c_file in Path(transript_dir).glob(f"{transcript_file.stem}*.txt")
+                for c_file in Path(".").glob(f"{transcript_file.stem}*.txt")
             ],
             key=lambda s: int(s.stem.split("_")[-1]),
         )
@@ -164,6 +167,9 @@ def incorporate_corrections(
         LetterIdx(l, int(matched2index.get(k, interp_fun(k))))
         for k, l in enumerate(corrected_transcript)
     ]
+    assert all(
+        (letters[k].index >= letters[k - 1].index for k in range(1, len(letters)))
+    )
     return letters[len(START) : -len(END)]
 
 

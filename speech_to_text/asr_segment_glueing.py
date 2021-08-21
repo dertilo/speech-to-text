@@ -18,7 +18,7 @@ from speech_to_text.transcribe_audio import (
 def glue_transcripts(
     aligned_transcripts: List[Tuple[int, AlignedTranscript]],
     step=round(TARGET_SAMPLE_RATE * 2),
-    debug=False,
+    debug=True,
 ) -> AlignedTranscript:
     all_but_last_must_be_of_same_len = (
         len(set((len(x.letters) for _, x in aligned_transcripts[:-1]))) == 1
@@ -77,7 +77,8 @@ def glue_transcripts(
             letters.extend([x for x in right.letters])
         previous = ts
 
-    letters.extend([s for s in previous.letters if s.index >= step])
+    letters.extend([LetterIdx(s.letter, s.index + idx) for s in previous.letters if s.index >= step])
+    assert all((letters[k].index>letters[k-1].index for k in range(1,len(letters))))
     transcript = AlignedTranscript(letters, sample_rate)
     return transcript
 
