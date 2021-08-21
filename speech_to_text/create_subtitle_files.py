@@ -1,9 +1,11 @@
 import datetime
 import os
+import re
 import shutil
 import sys
 
 from scipy.interpolate import interp1d
+from text_processing.smith_waterman_alignment import smith_waterman_alignment
 
 sys.path.append(".")
 
@@ -12,7 +14,7 @@ from pathlib import Path
 from util import data_io
 
 import difflib
-from typing import List, Generator
+from typing import List, Generator, Tuple
 
 from speech_to_text.transcribe_audio import (
     LetterIdx,
@@ -72,7 +74,6 @@ def cut_transcript_at_pauses(
 
 
 def main(transript_dir):
-    sm = difflib.SequenceMatcher()
     subtitles_dir = f"{transript_dir}/subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
@@ -80,17 +81,21 @@ def main(transript_dir):
     for transcript_file in Path(transript_dir).glob("*.csv"):
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
         letters = [LetterIdx(l, int(i)) for l, i in g]
-        raw_transcript = "".join([l.letter for l in letters])
 
-        corrected_transcript_file = str(transcript_file).replace(".csv", ".txt")
-        if os.path.isfile(corrected_transcript_file):
+        c_files = sorted(
+            [
+                c_file
+                for c_file in Path(transript_dir).glob(f"{transcript_file.stem}*.txt")
+            ],
+            key=lambda s: int(s.stem.split("_")[-1]),
+        )
+        print(f"correction-files:{c_files}")
+
+        for corrected_transcript_file in c_files:
             corrected_transcript = " ".join(
-                data_io.read_lines(corrected_transcript_file)
-            ).upper()
-            if corrected_transcript != "".join([l.letter for l in letters]):
-                letters = incorporate_corrections(
-                    corrected_transcript, raw_transcript, letters, sm
-                )
+                data_io.read_lines(str(corrected_transcript_file))
+            )
+            letters = incorporate_corrections(corrected_transcript, letters)
 
         srt_blocks = [
             build_srt_block(idx, block, TARGET_SAMPLE_RATE)
@@ -99,11 +104,15 @@ def main(transript_dir):
         data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
 
 
+def regex_tokenizer(
+    text, pattern=r"\w+(?:'\w+)?|[^\w\s]"
+) -> List[Tuple[int, int, str]]:  # pattern stolen from scikit-learn
+    return [(m.start(), m.end(), m.group()) for m in re.finditer(pattern, text)]
+
+
 def incorporate_corrections(
     corrected_transcript: str,
-    raw_transcript: str,
     raw_letters: List[LetterIdx],
-    sm: difflib.SequenceMatcher,
 ):
     START = "<start>"
     END = "<end>"
@@ -114,24 +123,39 @@ def incorporate_corrections(
         + [LetterIdx(s, raw_letters[-1].index) for s in END]
     )
 
-    raw_transcript = add_start_end(raw_transcript)
+    raw_transcript = "".join([l.letter for l in raw_letters])
+    # raw_transcript = add_start_end(raw_transcript)
     corrected_transcript = add_start_end(corrected_transcript)
-    sm.set_seqs(raw_transcript, corrected_transcript)
+    # sm.set_seqs(raw_transcript, corrected_transcript)
+    # matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+    tokens_a = regex_tokenizer(raw_transcript)
+    tokens_b = regex_tokenizer(corrected_transcript)
+    tok2letter_idx_a = {k: start_idx for k, (start_idx, _, _) in enumerate(tokens_a)}
+    tok2letter_idx_a[len(tokens_a)] = len(raw_transcript) + 1
+    tok2letter_idx_b = {k: start_idx for k, (start_idx, _, _) in enumerate(tokens_b)}
+    tok2letter_idx_b[len(tokens_b)] = len(corrected_transcript) + 1
 
-    matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+    alignments, _ = smith_waterman_alignment(
+        [t for _, _, t in tokens_a], [t for _, _, t in tokens_b]
+    )
+    matches = [al for al in alignments if al.ref == al.hyp]
     bold_text = raw_transcript
-    print(corrected_transcript)
-    for m in reversed(matches):
-        print(m)
+    for al in sorted(matches, key=lambda m: -m.refi_from):
+        start_idx = tok2letter_idx_a[al.refi_from]
+        size = tok2letter_idx_a[al.refi_to] - tok2letter_idx_a[al.refi_from]
         bold_text = (
-            bold_text[: m.a]
-            + f"\033[1m{bold_text[m.a:(m.a+m.size)]}\033[0m"
-            + bold_text[m.a + m.size :]
+            bold_text[:start_idx]
+            + f"\033[1m{bold_text[start_idx:(start_idx+size)]}\033[0m"
+            + bold_text[start_idx + size :]
         )
     print(bold_text)
 
+    raw_letters += [raw_letters[-1]]
     matched2index = {
-        m.b + k: raw_letters[m.a + k].index for m in matches for k in range(m.size)
+        tok2letter_idx_b[al.hypi_from]
+        + k: raw_letters[tok2letter_idx_a[al.refi_from] + k].index
+        for al in matches
+        for k in range(tok2letter_idx_a[al.refi_to] - tok2letter_idx_a[al.refi_from])
     }
     x = list(matched2index.keys())
     y = list(matched2index.values())
