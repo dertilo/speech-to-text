@@ -44,9 +44,11 @@ if __name__ == "__main__":
         model_name=model,
     ).init()
 
-    for file in Path(input_dir).glob("*.wav"):  # mp4, m4a
-        transcript = transcribe_audio_file(asr, file)
-        # transcript = convert_to_wav_transcribe(asr, file)
+    files = list(Path(input_dir).glob("*.*"))
+    assert len(files)>0
+    for file in files:  # mp4, m4a
+        # transcript = transcribe_audio_file(asr, file)
+        transcript = convert_to_wav_transcribe(asr, file)
         data_io.write_lines(
             f"{output_dir}/{file.stem}.csv",
             [f"{l.letter}\t{l.index}" for l in transcript.letters],

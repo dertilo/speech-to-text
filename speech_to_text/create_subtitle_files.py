@@ -78,16 +78,15 @@ def main(transript_dir):
         shutil.rmtree(subtitles_dir)
     os.makedirs(subtitles_dir)
     for transcript_file in Path(transript_dir).glob("*.csv"):
-        file_name = transcript_file.stem
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
         letters = [LetterIdx(l, int(i)) for l, i in g]
         raw_transcript = "".join([l.letter for l in letters])
 
         corrected_transcript_file = str(transcript_file).replace(".csv", ".txt")
         if os.path.isfile(corrected_transcript_file):
-            corrected_transcript = list(data_io.read_lines(corrected_transcript_file))[
-                0
-            ]
+            corrected_transcript = " ".join(
+                data_io.read_lines(corrected_transcript_file)
+            ).upper()
             if corrected_transcript != "".join([l.letter for l in letters]):
                 letters = incorporate_corrections(
                     corrected_transcript, raw_transcript, letters, sm
@@ -103,13 +102,36 @@ def main(transript_dir):
 def incorporate_corrections(
     corrected_transcript: str,
     raw_transcript: str,
-    letters: List[LetterIdx],
+    raw_letters: List[LetterIdx],
     sm: difflib.SequenceMatcher,
 ):
+    START = "<start>"
+    END = "<end>"
+    add_start_end = lambda x: f"{START}{x}{END}"
+    raw_letters = (
+        [LetterIdx(s, raw_letters[0].index) for s in START]
+        + raw_letters
+        + [LetterIdx(s, raw_letters[-1].index) for s in END]
+    )
+
+    raw_transcript = add_start_end(raw_transcript)
+    corrected_transcript = add_start_end(corrected_transcript)
     sm.set_seqs(raw_transcript, corrected_transcript)
+
     matches = [m for m in sm.get_matching_blocks() if m.size > 0]
+    bold_text = raw_transcript
+    print(corrected_transcript)
+    for m in reversed(matches):
+        print(m)
+        bold_text = (
+            bold_text[: m.a]
+            + f"\033[1m{bold_text[m.a:(m.a+m.size)]}\033[0m"
+            + bold_text[m.a + m.size :]
+        )
+    print(bold_text)
+
     matched2index = {
-        m.b + k: letters[m.a + k].index for m in matches for k in range(m.size)
+        m.b + k: raw_letters[m.a + k].index for m in matches for k in range(m.size)
     }
     x = list(matched2index.keys())
     y = list(matched2index.values())
@@ -118,7 +140,7 @@ def incorporate_corrections(
         LetterIdx(l, int(matched2index.get(k, interp_fun(k))))
         for k, l in enumerate(corrected_transcript)
     ]
-    return letters
+    return letters[len(START) : -len(END)]
 
 
 if __name__ == "__main__":
