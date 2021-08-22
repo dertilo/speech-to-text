@@ -1,7 +1,7 @@
-import base64
-import datetime
-import io
-import os
+import json
+import sys
+
+sys.path.append(".")
 from pathlib import Path
 
 import dash
@@ -14,7 +14,10 @@ import dash_auth
 from util import data_io
 
 from dash_app.updownload_app import save_file, uploaded_files, UPLOAD_DIRECTORY
-VALID_USERNAME_PASSWORD_PAIRS = {d["login"]:d["password"] for d in data_io.read_jsonl("credentials.jsonl")}
+
+VALID_USERNAME_PASSWORD_PAIRS = {
+    d["login"]: d["password"] for d in data_io.read_jsonl("credentials.jsonl")
+}
 
 
 server = Flask(__name__)
@@ -26,6 +29,7 @@ app = dash.Dash(
 )
 
 auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
+
 
 @server.route("/download/<path:path>")
 def download(path):
@@ -74,36 +78,6 @@ video_selection_upload = dbc.Row(
         ),
     ]
 )
-text_areas = dbc.Row(
-    [
-        dbc.Col(
-            html.Div(
-                [
-                    html.H5("raw text"),
-                    dbc.Textarea(
-                        id="raw-text",
-                        value="Textarea content initialized\nwith multiple lines of text",
-                        style={"width": "100%", "height": 200},
-                    ),
-                    dbc.Button(
-                        "save & submit",
-                        id="raw-text-button",
-                        n_clicks=0,
-                    ),
-                ]
-            )
-        ),
-        dbc.Col(
-            [
-                html.H5("processed text"),
-                dbc.Textarea(
-                    id="processed-text",
-                    style={"width": "100%", "height": 200},
-                ),
-            ]
-        ),
-    ]
-)
 page_content = [
     html.H2("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
@@ -114,18 +88,77 @@ page_content = [
                 html.Div(id="video-player"),
             ),
             dbc.Col(html.Div(id="video-player-subs")),
+            dbc.Button(
+                "save & submit",
+                id="process-texts-button",
+                n_clicks=0,
+            ),
         ]
     ),
-    text_areas,
+    dbc.Row(
+        [
+            dbc.Col(id="languages-text-areas"),
+            dbc.Col(id="subtitles-text-areas"),
+        ],
+    ),
+    dbc.Row(
+        dbc.Col(
+            [
+                dbc.Textarea(
+                    id="new-transcript-name",
+                    value="type some name here",
+                    style={"width": "20%", "height": 50},
+                ),
+                dbc.Button(
+                    "create new transcript",
+                    id="new-transcript-button",
+                    n_clicks=0,
+                ),
+            ]
+        )
+    ),
 ]
 app.layout = html.Div(
     [
         dbc.Container(
             page_content,
         ),
-        dcc.Store(id="current-experiment"),
+        dcc.Store(id="page-data"),
     ]
 )
+
+
+@app.callback(
+    Output("languages-text-areas", "children"),
+    Input("text-areas-data", "data"),
+)
+def update_text_areas(data_s: str):
+    data = json.loads(data_s)
+    return [dbc.Row(
+        [
+            html.H5(d["name"]),
+            dbc.Textarea(
+                id=f"raw-text-{k}",
+                value=d["text"],
+                style={"width": "100%", "height": 200},
+            ),
+        ]
+    ) for k, d in enumerate(data)]
+
+    # Input("new-transcript-button", "n_clicks"),
+    # State("new-transcript-name", "value"),
+
+
+
+# dbc.Col(
+#     [
+#         html.H5(f"processed {name}"),
+#         dbc.Textarea(
+#             id=f"processed-text-{k}",
+#             style={"width": "100%", "height": 200},
+#         ),
+#     ]
+# ),
 
 
 @app.callback(
@@ -149,7 +182,7 @@ def update_output(contents, names, dates):
         for name, data, date in zip(names, contents, dates):
             save_file(name, data, date)
     options = [{"label": Path(f).stem, "value": f} for f in uploaded_files()]
-    return options, options[0]["value"]
+    return options, options[0]["value"] if len(options) > 0 else None
 
 
 @app.callback(
