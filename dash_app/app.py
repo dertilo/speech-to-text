@@ -34,59 +34,92 @@ def serve_static(path):
     return send_from_directory(UPLOAD_DIRECTORY, path, as_attachment=False)
 
 
-app.layout = html.Div(
+video_selection_upload = dbc.Row(
     [
-        dcc.Upload(
-            id="upload-data",
-            children=html.Div(["Drag and Drop or ", html.A("Select Files")]),
-            style={
-                "width": "100%",
-                "height": "60px",
-                "lineHeight": "60px",
-                "borderWidth": "1px",
-                "borderStyle": "dashed",
-                "borderRadius": "5px",
-                "textAlign": "center",
-                "margin": "10px",
-            },
-            # Allow multiple files to be uploaded
-            multiple=True,
-        ),
-        html.Div(
-            id="output-data-upload",
-            children=[
-                html.Label(
-                    ["Single dynamic Dropdown", dcc.Dropdown(id="my-dynamic-dropdown")]
-                )
-            ],
-        ),
-        html.Div(id="video-player"),
-        dbc.Row(
-            [
-                dbc.Col(
-                    html.Div(
+        dbc.Col(
+            html.Div(
+                id="output-data-upload",
+                children=[
+                    html.Label(
                         [
-                            html.H5("raw text"),
-                            dbc.Textarea(
-                                id="raw-text",
-                                value="Textarea content initialized\nwith multiple lines of text",
-                                style={"width": "100%", "height": 200},
-                            ),
-                            dbc.Button("save & submit", id="raw-text-button", n_clicks=0),
-                        ]
+                            "video-files",
+                            dcc.Dropdown(id="my-dynamic-dropdown"),
+                        ],
+                        style={"width": "100%"},
                     )
-                ),
-                dbc.Col(
-                    [
-                        html.H5("processed text"),
-                        dbc.Textarea(
-                            id="processed-text",
-                            style={"width": "100%", "height": 200},
-                        ),
-                    ]
+                ],
+            )
+        ),
+        dbc.Col(
+            dcc.Upload(
+                id="upload-data",
+                children=html.Div(["Drag and Drop or ", html.A("Select Files")]),
+                style={
+                    "width": "100%",
+                    "height": "60px",
+                    "lineHeight": "60px",
+                    "borderWidth": "1px",
+                    "borderStyle": "dashed",
+                    "borderRadius": "5px",
+                    "textAlign": "center",
+                    "margin": "10px",
+                },
+                # Allow multiple files to be uploaded
+                multiple=True,
+            )
+        ),
+    ]
+)
+text_areas = dbc.Row(
+    [
+        dbc.Col(
+            html.Div(
+                [
+                    html.H5("raw text"),
+                    dbc.Textarea(
+                        id="raw-text",
+                        value="Textarea content initialized\nwith multiple lines of text",
+                        style={"width": "100%", "height": 200},
+                    ),
+                    dbc.Button(
+                        "save & submit",
+                        id="raw-text-button",
+                        n_clicks=0,
+                    ),
+                ]
+            )
+        ),
+        dbc.Col(
+            [
+                html.H5("processed text"),
+                dbc.Textarea(
+                    id="processed-text",
+                    style={"width": "100%", "height": 200},
                 ),
             ]
         ),
+    ]
+)
+page_content = [
+    html.H2("subtitles creator"),
+    html.H5("select video-file in dropdown, if not there upload it!"),
+    video_selection_upload,
+    dbc.Row(
+        [
+            dbc.Col(
+                html.Div(id="video-player"),
+            ),
+            dbc.Col(html.Div(id="video-player-subs")),
+        ]
+    ),
+    text_areas,
+]
+app.layout = html.Div(
+    [
+        dbc.Container(
+            page_content,
+        ),
+        dcc.Store(id="current-experiment"),
     ]
 )
 
@@ -121,14 +154,16 @@ def update_output(contents, names, dates):
 )
 def update_video_player(file):
     fullfile = f"{UPLOAD_DIRECTORY}/{file}"
-    return html.Div(
-        children=[
-            html.H2(f"{Path(fullfile).name}"),
-            html.Video(
-                controls=True, id="movie_player", src=f"/files/{file}", autoPlay=False
-            ),
-        ]
-    )
+    return [
+        html.H5(f"{Path(fullfile).name}"),
+        html.Video(
+            controls=True,
+            id="movie_player",
+            src=f"/files/{file}",
+            autoPlay=False,
+            style={"width": "100%"},
+        ),
+    ]
 
 
 if __name__ == "__main__":
