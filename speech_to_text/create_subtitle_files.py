@@ -141,18 +141,22 @@ def create_subtitles(transript_dir, manual_transcripts_dir):
             for s, e in generate_block_start_ends(raw_letters)
         ]
         subs = SSAFile()
-        colors = [Color(255, 255, 255), Color(0, 0, 255), Color(255, 0, 0)]
+        colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
         for k, name in enumerate(named_blocks[0].keys()):
             my_style = subs.styles["Default"].copy()
             my_style.primarycolor = colors[k]
             subs.styles[name] = my_style
 
         for name2block in named_blocks:
+            start, end = None, None
             for name, block in name2block.items():
                 if len(block) > 0:
+                    if start is None:
+                        start = create_timestamp(block[0].index)
+                        end = create_timestamp(block[-1].index)
                     sub_line = SSAEvent(
-                        start=create_timestamp(block[0].index),
-                        end=create_timestamp(block[-1].index),
+                        start=start,
+                        end=end,
                         text="".join((l.letter for l in block)),
                     )
                     sub_line.style = name
