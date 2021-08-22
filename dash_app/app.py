@@ -86,6 +86,7 @@ video_selection_upload = dbc.Row(
         ),
     ]
 )
+NO_NAME = "type some name here"
 page_content = [
     html.H2("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
@@ -132,7 +133,7 @@ page_content = [
             [
                 dbc.Textarea(
                     id="new-transcript-name",
-                    value="type some name here",
+                    value=NO_NAME,
                     style={"width": "20%", "height": 50},
                 ),
                 dbc.Button(
@@ -155,26 +156,26 @@ app.layout = html.Div(
 )
 
 
-@app.callback(
-    Output("subtitles-text-area", "children"),
-    State("text-areas-data", "data"),
-)
-def update_subtiles_text_area(n_clicks, data_s):
-    if n_clicks > 0:
-        data = json.loads(data_s)
-        return dbc.Row(
-            [
-                html.H5("subtitles"),
-                dbc.Textarea(
-                    id="subtitles",
-                    value="\n".join([d["text"] for d in data]),
-                    style={"width": "90%", "height": 200*len(data)},
-                ),
-            ]
-        )
-
-    else:
-        raise PreventUpdate
+# @app.callback(
+#     Output("subtitles-text-area", "children"),
+#     State("text-areas-data", "data"),
+# )
+# def update_subtiles_text_area(n_clicks, data_s):
+#     if n_clicks > 0:
+#         data = json.loads(data_s)
+#         return dbc.Row(
+#             [
+#                 html.H5("subtitles"),
+#                 dbc.Textarea(
+#                     id="subtitles",
+#                     value="\n".join([d["text"] for d in data]),
+#                     style={"width": "90%", "height": 200*len(data)},
+#                 ),
+#             ]
+#         )
+#
+#     else:
+#         raise PreventUpdate
 
 @app.callback(
     Output("load-dumped-data-signal", "data"),
@@ -193,52 +194,38 @@ def process_button_clicked(n_clicks, video_name,texts,titles):
         raise PreventUpdate
 
 @app.callback(
-    Output("load-dumped-data-signal", "data"),
-    Input("new-transcript-button", "n_clicks"),
-    State("new-transcript-name", "value"),
-    State("video-file-dropdown", "value"),
-    State("text-areas-data", "data"),
-)
-def create_new_text_area(n_clicks, new_transcript_name, video_name, data_s):
-    if n_clicks > 0:
-        assert video_name is not None
-        data = json.loads(data_s) if data_s is not None else []
-        data[new_transcript_name]= "enter text here"
-        data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
-        return "content-of-this-string-does-not-matter"
-    else:
-        raise PreventUpdate
-
-
-@app.callback(
     Output("text-areas-data", "data"),
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
 )
-def update_text_area_data(video_name, _):
-    return json.dumps(list(data_io.read_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl")))
+def update_store_data(video_name, _):
+    return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{video_name}.json"))
 
 
 @app.callback(
     Output("languages-text-areas", "children"),
     Input("text-areas-data", "data"),
+    Input("new-transcript-button", "n_clicks"),
+    State("new-transcript-name", "value"),
 )
-def update_text_areas(data_s: str):
+def update_text_areas(data_s: str,n_clicks,new_name):
     if data_s is not None:
         data = json.loads(data_s)
+        if new_name!=NO_NAME:
+            data[new_name]="enter text here"
         return [
             dbc.Row(
                 [
-                    html.H5(d["name"]),
+                    html.H5(name),
                     dbc.Textarea(
-                        title=d["name"],
-                        id={'type': 'transcript-text', 'name': d["name"]},
-                        value=d["text"],
+                        title=name,
+                        id={'type': 'transcript-text', 'name': name},
+                        value=text,
                         style={"width": "90%", "height": 200},
                     ),
                 ]
             )
-            for k, d in enumerate(data)
+            for k, (name,text) in enumerate(data.items())
         ]
     else:
         raise PreventUpdate
