@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from pprint import pprint
 
@@ -150,85 +151,80 @@ app.layout = html.Div(
         dbc.Container(
             page_content,
         ),
-        dcc.Store(id="text-areas-data"),
+        dcc.Store(id="transcripts-store"),
         dcc.Store(id="load-dumped-data-signal"),
     ]
 )
 
 
-# @app.callback(
-#     Output("subtitles-text-area", "children"),
-#     State("text-areas-data", "data"),
-# )
-# def update_subtiles_text_area(n_clicks, data_s):
-#     if n_clicks > 0:
-#         data = json.loads(data_s)
-#         return dbc.Row(
-#             [
-#                 html.H5("subtitles"),
-#                 dbc.Textarea(
-#                     id="subtitles",
-#                     value="\n".join([d["text"] for d in data]),
-#                     style={"width": "90%", "height": 200*len(data)},
-#                 ),
-#             ]
-#         )
-#
-#     else:
-#         raise PreventUpdate
-
 @app.callback(
     Output("load-dumped-data-signal", "data"),
+    Output("subtitles-text-area", "children"),
     Input("process-texts-button", "n_clicks"),
     State("video-file-dropdown", "value"),
-    State({'type': 'transcript-text', 'name': ALL}, 'value'),
-    State({'type': 'transcript-text', 'name': ALL}, 'title')
+    State({"type": "transcript-text", "name": ALL}, "value"),
+    State({"type": "transcript-text", "name": ALL}, "title"),
 )
-def process_button_clicked(n_clicks, video_name,texts,titles):
+def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
     if n_clicks > 0:
         assert video_name is not None
-        data={title:text for title,text in zip(titles,texts)}
+        data = {title: text for title, text in zip(titles, texts)}
         data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
-        return "content-of-this-string-does-not-matter"
+
+        subtitles = dbc.Row(
+            [
+                html.H5("subtitles"),
+                dbc.Textarea(
+                    id="subtitles",
+                    value="\n".join([text for name, text in data.items()]),
+                    style={"width": "90%", "height": 200 * len(data)},
+                ),
+            ]
+        )
+        return "content-of-this-string-does-not-matter", subtitles
     else:
         raise PreventUpdate
 
+
 @app.callback(
-    Output("text-areas-data", "data"),
+    Output("transcripts-store", "data"),
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
 )
 def update_store_data(video_name, _):
-    return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{video_name}.json"))
+    if os.path.isfile(f"{SUBTITLES_DIR}/{video_name}.json"):
+        print("update_store_data")
+        return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{video_name}.json"))
+    else:
+        print(f"not updated update_store_data")
+        raise PreventUpdate
 
 
 @app.callback(
     Output("languages-text-areas", "children"),
-    Input("text-areas-data", "data"),
+    Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
     State("new-transcript-name", "value"),
 )
-def update_text_areas(data_s: str,n_clicks,new_name):
-    if data_s is not None:
-        data = json.loads(data_s)
-        if new_name!=NO_NAME:
-            data[new_name]="enter text here"
-        return [
-            dbc.Row(
-                [
-                    html.H5(name),
-                    dbc.Textarea(
-                        title=name,
-                        id={'type': 'transcript-text', 'name': name},
-                        value=text,
-                        style={"width": "90%", "height": 200},
-                    ),
-                ]
-            )
-            for k, (name,text) in enumerate(data.items())
-        ]
-    else:
-        raise PreventUpdate
+def update_text_areas(data_s: str, n_clicks, new_name):
+    data = json.loads(data_s) if data_s is not None else {}
+    print(data)
+    if new_name != NO_NAME:
+        data[new_name] = "enter text here"
+    return [
+        dbc.Row(
+            [
+                html.H5(name),
+                dbc.Textarea(
+                    title=name,
+                    id={"type": "transcript-text", "name": name},
+                    value=text,
+                    style={"width": "90%", "height": 200},
+                ),
+            ]
+        )
+        for k, (name, text) in enumerate(data.items())
+    ]
 
 
 # dbc.Col(
