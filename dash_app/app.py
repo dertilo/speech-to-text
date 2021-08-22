@@ -1,5 +1,8 @@
 import json
 import sys
+from pprint import pprint
+
+from dash.exceptions import PreventUpdate
 
 sys.path.append(".")
 from pathlib import Path
@@ -13,7 +16,8 @@ import dash_bootstrap_components as dbc
 import dash_auth
 from util import data_io
 
-from dash_app.updownload_app import save_file, uploaded_files, UPLOAD_DIRECTORY
+from dash_app.updownload_app import save_file, uploaded_files, UPLOAD_DIRECTORY, \
+    SUBTITLES_DIR
 
 VALID_USERNAME_PASSWORD_PAIRS = {
     d["login"]: d["password"] for d in data_io.read_jsonl("credentials.jsonl")
@@ -51,7 +55,7 @@ video_selection_upload = dbc.Row(
                     html.Label(
                         [
                             "video-files",
-                            dcc.Dropdown(id="my-dynamic-dropdown"),
+                            dcc.Dropdown(id="video-file-dropdown"),
                         ],
                         style={"width": "100%"},
                     )
@@ -123,32 +127,52 @@ app.layout = html.Div(
         dbc.Container(
             page_content,
         ),
-        dcc.Store(id="page-data"),
+        dcc.Store(id="text-areas-data"),
     ]
 )
 
+@app.callback(
+    Output("text-areas-data", "data"),
+    Input("new-transcript-button", "n_clicks"),
+    State("new-transcript-name", "value"),
+    State("video-file-dropdown", "value"),
+    State("text-areas-data", "data"),
+)
+def create_new_text_area(n_clicks,new_transcript_name,video_name,data_s):
+    if n_clicks>0:
+        assert video_name is not None
+        print(n_clicks)
+        data = json.loads(data_s) if data_s is not None else {}
+        if video_name not in data:
+            data[video_name]=[]
+        video_data = data[video_name]
+        video_data.append({"name":new_transcript_name,"text":"enter text here"})
+        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl",video_data)
+        pprint(data)
+        return json.dumps(data)
+    else:
+        raise PreventUpdate
 
 @app.callback(
     Output("languages-text-areas", "children"),
     Input("text-areas-data", "data"),
+    State("video-file-dropdown", "value"),
 )
-def update_text_areas(data_s: str):
-    data = json.loads(data_s)
-    return [dbc.Row(
-        [
-            html.H5(d["name"]),
-            dbc.Textarea(
-                id=f"raw-text-{k}",
-                value=d["text"],
-                style={"width": "100%", "height": 200},
-            ),
-        ]
-    ) for k, d in enumerate(data)]
-
-    # Input("new-transcript-button", "n_clicks"),
-    # State("new-transcript-name", "value"),
-
-
+def update_text_areas(data_s: str,video_name):
+    if data_s is not None and video_name in data_s:
+        data = json.loads(data_s)[video_name]
+        return [dbc.Row(
+            [
+                html.H5(d["name"]),
+                dbc.Textarea(
+                    id=f"raw-text-{k}",
+                    value=d["text"],
+                    style={"width": "100%", "height": 200},
+                ),
+            ]
+        ) for k, d in enumerate(data)]
+    else:
+        raise PreventUpdate
 
 # dbc.Col(
 #     [
@@ -160,19 +184,9 @@ def update_text_areas(data_s: str):
 #     ]
 # ),
 
-
 @app.callback(
-    Output("processed-text", "value"),
-    Input("raw-text-button", "n_clicks"),
-    State("raw-text", "value"),
-)
-def process_text(n_clicks, raw_text):
-    return raw_text.upper()
-
-
-@app.callback(
-    Output("my-dynamic-dropdown", "options"),
-    Output("my-dynamic-dropdown", "value"),
+    Output("video-file-dropdown", "options"),
+    Output("video-file-dropdown", "value"),
     Input("upload-data", "contents"),
     State("upload-data", "filename"),
     State("upload-data", "last_modified"),
@@ -182,12 +196,13 @@ def update_output(contents, names, dates):
         for name, data, date in zip(names, contents, dates):
             save_file(name, data, date)
     options = [{"label": Path(f).stem, "value": f} for f in uploaded_files()]
+    print(options)
     return options, options[0]["value"] if len(options) > 0 else None
 
 
 @app.callback(
     Output("video-player", "children"),
-    Input("my-dynamic-dropdown", "value"),
+    Input("video-file-dropdown", "value"),
 )
 def update_video_player(file):
     fullfile = f"{UPLOAD_DIRECTORY}/{file}"

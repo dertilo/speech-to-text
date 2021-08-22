@@ -10,9 +10,13 @@ from dash.dependencies import Input, Output
 
 
 UPLOAD_DIRECTORY = f"{os.environ['DATA_DIR']}/app_uploaded_files"
+SUBTITLES_DIR = f"{os.environ['DATA_DIR']}/subtitles_data"
 
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
+
+if not os.path.exists(SUBTITLES_DIR):
+    os.makedirs(SUBTITLES_DIR)
 
 
 # Normally, Dash creates its own Flask server internally. By creating our own,
