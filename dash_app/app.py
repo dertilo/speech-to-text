@@ -16,8 +16,12 @@ import dash_bootstrap_components as dbc
 import dash_auth
 from util import data_io
 
-from dash_app.updownload_app import save_file, uploaded_files, UPLOAD_DIRECTORY, \
-    SUBTITLES_DIR
+from dash_app.updownload_app import (
+    save_file,
+    uploaded_files,
+    UPLOAD_DIRECTORY,
+    SUBTITLES_DIR,
+)
 
 VALID_USERNAME_PASSWORD_PAIRS = {
     d["login"]: d["password"] for d in data_io.read_jsonl("credentials.jsonl")
@@ -92,17 +96,22 @@ page_content = [
                 html.Div(id="video-player"),
             ),
             dbc.Col(html.Div(id="video-player-subs")),
-            dbc.Button(
-                "save & submit",
-                id="process-texts-button",
-                n_clicks=0,
-            ),
         ]
     ),
     dbc.Row(
         [
             dbc.Col(id="languages-text-areas"),
-            dbc.Col(id="subtitles-text-areas"),
+            dbc.Col(
+                [
+                    dbc.Row(
+                        dbc.Button(
+                            "save & submit",
+                            id="process-texts-button",
+                            n_clicks=0,
+                        )
+                    )
+                ]
+            ),
         ],
     ),
     dbc.Row(
@@ -131,6 +140,7 @@ app.layout = html.Div(
     ]
 )
 
+
 @app.callback(
     Output("text-areas-data", "data"),
     Input("new-transcript-button", "n_clicks"),
@@ -138,41 +148,46 @@ app.layout = html.Div(
     State("video-file-dropdown", "value"),
     State("text-areas-data", "data"),
 )
-def create_new_text_area(n_clicks,new_transcript_name,video_name,data_s):
-    if n_clicks>0:
+def create_new_text_area(n_clicks, new_transcript_name, video_name, data_s):
+    if n_clicks > 0:
         assert video_name is not None
         print(n_clicks)
         data = json.loads(data_s) if data_s is not None else {}
         if video_name not in data:
-            data[video_name]=[]
+            data[video_name] = []
         video_data = data[video_name]
-        video_data.append({"name":new_transcript_name,"text":"enter text here"})
-        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl",video_data)
+        video_data.append({"name": new_transcript_name, "text": "enter text here"})
+        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl", video_data)
         pprint(data)
         return json.dumps(data)
     else:
         raise PreventUpdate
+
 
 @app.callback(
     Output("languages-text-areas", "children"),
     Input("text-areas-data", "data"),
     State("video-file-dropdown", "value"),
 )
-def update_text_areas(data_s: str,video_name):
+def update_text_areas(data_s: str, video_name):
     if data_s is not None and video_name in data_s:
         data = json.loads(data_s)[video_name]
-        return [dbc.Row(
-            [
-                html.H5(d["name"]),
-                dbc.Textarea(
-                    id=f"raw-text-{k}",
-                    value=d["text"],
-                    style={"width": "100%", "height": 200},
-                ),
-            ]
-        ) for k, d in enumerate(data)]
+        return [
+            dbc.Row(
+                [
+                    html.H5(d["name"]),
+                    dbc.Textarea(
+                        id=f"raw-text-{k}",
+                        value=d["text"],
+                        style={"width": "100%", "height": 200},
+                    ),
+                ]
+            )
+            for k, d in enumerate(data)
+        ]
     else:
         raise PreventUpdate
+
 
 # dbc.Col(
 #     [
@@ -183,6 +198,7 @@ def update_text_areas(data_s: str,video_name):
 #         ),
 #     ]
 # ),
+
 
 @app.callback(
     Output("video-file-dropdown", "options"),
