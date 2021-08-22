@@ -4,6 +4,8 @@ import re
 import shutil
 import sys
 
+from pysubs2 import SSAFile, Color, SSAEvent
+from pysubs2.time import make_time
 from scipy.interpolate import interp1d
 from text_processing.smith_waterman_alignment import smith_waterman_alignment
 
@@ -99,7 +101,7 @@ def generate_block_start_ends(
     yield last_end, l.index
 
 
-def main(transript_dir, manual_transcripts_dir):
+def create_subtitles(transript_dir, manual_transcripts_dir):
     subtitles_dir = f"{transript_dir}/subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
@@ -134,15 +136,41 @@ def main(transript_dir, manual_transcripts_dir):
             letters = incorporate_corrections(corrected_transcript, letters)
             subtitles.append((corrected_transcript_file.stem, letters))
 
-        blocks = [
+        named_blocks = [
             cut_block_out_of_transcript(subtitles, s, e)
             for s, e in generate_block_start_ends(raw_letters)
         ]
-        srt_blocks = [
-            build_srt_block(idx, block, TARGET_SAMPLE_RATE)
-            for idx, block in enumerate(blocks)
-        ]
-        data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
+        subs = SSAFile()
+        colors = [Color(255, 255, 255), Color(0, 0, 255), Color(255, 0, 0)]
+        for k, name in enumerate(named_blocks[0].keys()):
+            my_style = subs.styles["Default"].copy()
+            my_style.primarycolor = colors[k]
+            subs.styles[name] = my_style
+
+        for name2block in named_blocks:
+            for name, block in name2block.items():
+                if len(block) > 0:
+                    sub_line = SSAEvent(
+                        start=create_timestamp(block[0].index),
+                        end=create_timestamp(block[-1].index),
+                        text="".join((l.letter for l in block)),
+                    )
+                    sub_line.style = name
+                    subs.append(sub_line)
+                else:
+                    print(f"WARNING: got empty block! {name} ")
+        subtitles_file = f"{subtitles_dir}/{transcript_file.stem}.ass"
+        subs.save(subtitles_file)
+        yield Path(subtitles_file)
+        # srt_blocks = [
+        #     build_srt_block(idx, block, TARGET_SAMPLE_RATE)
+        #     for idx, block in enumerate(blocks)
+        # ]
+        # data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
+
+
+def create_timestamp(index):
+    return make_time(ms=round(1000 * index / TARGET_SAMPLE_RATE))
 
 
 def regex_tokenizer(
@@ -216,4 +244,4 @@ if __name__ == "__main__":
     transript_dir = sys.argv[1]
     manual_transcripts_dir = sys.argv[2]
 
-    main(transript_dir, manual_transcripts_dir)
+    list(create_subtitles(transript_dir, manual_transcripts_dir))
