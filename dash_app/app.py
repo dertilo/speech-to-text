@@ -137,12 +137,13 @@ app.layout = html.Div(
             page_content,
         ),
         dcc.Store(id="text-areas-data"),
+        dcc.Store(id="load-dumped-data-signal"),
     ]
 )
 
 
 @app.callback(
-    Output("text-areas-data", "data"),
+    Output("load-dumped-data-signal", "data"),
     Input("new-transcript-button", "n_clicks"),
     State("new-transcript-name", "value"),
     State("video-file-dropdown", "value"),
@@ -152,26 +153,31 @@ def create_new_text_area(n_clicks, new_transcript_name, video_name, data_s):
     if n_clicks > 0:
         assert video_name is not None
         print(n_clicks)
-        data = json.loads(data_s) if data_s is not None else {}
-        if video_name not in data:
-            data[video_name] = []
-        video_data = data[video_name]
-        video_data.append({"name": new_transcript_name, "text": "enter text here"})
-        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl", video_data)
+        data = json.loads(data_s) if data_s is not None else []
+        data.append({"name": new_transcript_name, "text": "enter text here"})
+        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl", data)
         pprint(data)
-        return json.dumps(data)
+        return "content-of-this-string-does-not-matter"
     else:
         raise PreventUpdate
 
 
 @app.callback(
+    Output("text-areas-data", "data"),
+    Input("video-file-dropdown", "value"),
+    Input("load-dumped-data-signal", "data"),
+)
+def update_text_area_data(video_name, _):
+    return json.dumps(list(data_io.read_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl")))
+
+
+@app.callback(
     Output("languages-text-areas", "children"),
     Input("text-areas-data", "data"),
-    State("video-file-dropdown", "value"),
 )
-def update_text_areas(data_s: str, video_name):
-    if data_s is not None and video_name in data_s:
-        data = json.loads(data_s)[video_name]
+def update_text_areas(data_s: str):
+    if data_s is not None:
+        data = json.loads(data_s)
         return [
             dbc.Row(
                 [
@@ -212,7 +218,6 @@ def update_output(contents, names, dates):
         for name, data, date in zip(names, contents, dates):
             save_file(name, data, date)
     options = [{"label": Path(f).stem, "value": f} for f in uploaded_files()]
-    print(options)
     return options, options[0]["value"] if len(options) > 0 else None
 
 
