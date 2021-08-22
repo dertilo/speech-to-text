@@ -1,0 +1,13 @@
+tqdm
+tilosutils@git+https://git@github.com/dertilo/tilosutils.git#egg=tilosutils
+speech_processing@git+https://git@github.com/dertilo/speech-processing.git#egg=speech_processing
+dash
+dash-renderer
+librosa
+dash_html_components
+dash_bootstrap_components
+plotly
+dash_core_components
+dash_table
+numpy
+pandas

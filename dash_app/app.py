@@ -10,8 +10,11 @@ import dash_core_components as dcc
 import dash_html_components as html
 from flask import Flask, send_from_directory
 import dash_bootstrap_components as dbc
+import dash_auth
+from util import data_io
 
 from dash_app.updownload_app import save_file, uploaded_files, UPLOAD_DIRECTORY
+VALID_USERNAME_PASSWORD_PAIRS = {d["login"]:d["password"] for d in data_io.read_jsonl("credentials.jsonl")}
 
 
 server = Flask(__name__)
@@ -22,6 +25,7 @@ app = dash.Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
 )
 
+auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
 
 @server.route("/download/<path:path>")
 def download(path):
