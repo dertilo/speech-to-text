@@ -8,7 +8,7 @@ sys.path.append(".")
 from pathlib import Path
 
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL
 import dash_core_components as dcc
 import dash_html_components as html
 from flask import Flask, send_from_directory
@@ -100,17 +100,30 @@ page_content = [
     ),
     dbc.Row(
         [
+            dbc.Col(
+                dbc.Button(
+                    "create subtitles",
+                    id="process-texts-button",
+                    n_clicks=0,
+                ),
+                style={"width": "100%"},
+            ),
+            dbc.Col(
+                dbc.Button(
+                    "burn into video",
+                    id="process-video-button",
+                    n_clicks=0,
+                ),
+                style={"width": "100%"},
+            ),
+        ]
+    ),
+    dbc.Row(
+        [
             dbc.Col(id="languages-text-areas"),
             dbc.Col(
-                [
-                    dbc.Row(
-                        dbc.Button(
-                            "save & submit",
-                            id="process-texts-button",
-                            n_clicks=0,
-                        )
-                    )
-                ]
+                id="subtitles-text-area",
+                style={"width": "100%"},
             ),
         ],
     ),
@@ -143,6 +156,43 @@ app.layout = html.Div(
 
 
 @app.callback(
+    Output("subtitles-text-area", "children"),
+    State("text-areas-data", "data"),
+)
+def update_subtiles_text_area(n_clicks, data_s):
+    if n_clicks > 0:
+        data = json.loads(data_s)
+        return dbc.Row(
+            [
+                html.H5("subtitles"),
+                dbc.Textarea(
+                    id="subtitles",
+                    value="\n".join([d["text"] for d in data]),
+                    style={"width": "90%", "height": 200*len(data)},
+                ),
+            ]
+        )
+
+    else:
+        raise PreventUpdate
+
+@app.callback(
+    Output("load-dumped-data-signal", "data"),
+    Input("process-texts-button", "n_clicks"),
+    State("video-file-dropdown", "value"),
+    State({'type': 'transcript-text', 'name': ALL}, 'value'),
+    State({'type': 'transcript-text', 'name': ALL}, 'title')
+)
+def process_button_clicked(n_clicks, video_name,texts,titles):
+    if n_clicks > 0:
+        assert video_name is not None
+        data={title:text for title,text in zip(titles,texts)}
+        data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
+        return "content-of-this-string-does-not-matter"
+    else:
+        raise PreventUpdate
+
+@app.callback(
     Output("load-dumped-data-signal", "data"),
     Input("new-transcript-button", "n_clicks"),
     State("new-transcript-name", "value"),
@@ -152,11 +202,9 @@ app.layout = html.Div(
 def create_new_text_area(n_clicks, new_transcript_name, video_name, data_s):
     if n_clicks > 0:
         assert video_name is not None
-        print(n_clicks)
         data = json.loads(data_s) if data_s is not None else []
-        data.append({"name": new_transcript_name, "text": "enter text here"})
-        data_io.write_jsonl(f"{SUBTITLES_DIR}/{video_name}.jsonl", data)
-        pprint(data)
+        data[new_transcript_name]= "enter text here"
+        data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
         return "content-of-this-string-does-not-matter"
     else:
         raise PreventUpdate
@@ -183,9 +231,10 @@ def update_text_areas(data_s: str):
                 [
                     html.H5(d["name"]),
                     dbc.Textarea(
-                        id=f"raw-text-{k}",
+                        title=d["name"],
+                        id={'type': 'transcript-text', 'name': d["name"]},
                         value=d["text"],
-                        style={"width": "100%", "height": 200},
+                        style={"width": "90%", "height": 200},
                     ),
                 ]
             )
