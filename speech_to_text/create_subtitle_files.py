@@ -28,33 +28,44 @@ def format_timedelta(milliseconds):
     )
 
 
-def build_srt_block(idx: int, transcripts: List[Tuple[str,List[LetterIdx]]],block_start,block_end, sample_rate):
-    def tokenize_letters(lettas:List[LetterIdx]):
-        buffer=[]
+def build_srt_block(
+    idx: int,
+    transcripts: List[Tuple[str, List[LetterIdx]]],
+    block_start,
+    block_end,
+    sample_rate,
+):
+    def tokenize_letters(lettas: List[LetterIdx]):
+        buffer = []
         for l in lettas:
             buffer.append(l)
-            if l.letter==" ":
+            if l.letter == " ":
                 yield buffer
-                buffer=[]
+                buffer = []
         yield buffer
 
-    subtitle_texts=[]
-    start,end=None,None
-    colors=["#ffffff","#ff0000","#0019ff","#0fff00"]
-    for k,(name, letters) in enumerate(transcripts):
-        tokens=list(tokenize_letters(letters))
-        block=[l for tok in tokens if tok[0].index>=block_start and tok[0].index<block_end for l in tok]
+    subtitle_texts = []
+    start, end = None, None
+    colors = ["#ffffff", "#ff0000", "#0019ff", "#0fff00"]
+    for k, (name, letters) in enumerate(transcripts):
+        tokens = list(tokenize_letters(letters))
+        block = [
+            l
+            for tok in tokens
+            if tok[0].index >= block_start and tok[0].index < block_end
+            for l in tok
+        ]
         # breakpoint()
-        if len(block)>0:
+        if len(block) > 0:
             if start is None:
                 start = round(1000 * block[0].index / sample_rate)
                 end = round(1000 * block[-1].index / sample_rate)
             text = "".join((l.letter for l in block))
         else:
-            text=""
+            text = ""
             print("WARNING! empty block!")
         subtitle_texts.append(f"<font color='{colors[k]}'>{text}</font>")
-    subtitle = '\n'.join(subtitle_texts)
+    subtitle = "\n".join(subtitle_texts)
     return f"""{idx}
 {format_timedelta(start)} --> {format_timedelta(end)}
 {subtitle}
@@ -69,22 +80,20 @@ def cut_transcript_at_pauses(
     so that transcitions between subtitle-block are not too anoying
     """
     block_len: int = 0
-    last_end=0
+    last_end = 0
     for k, l in enumerate(letters):
-        block_len+=1
+        block_len += 1
         if l.letter == " ":
             next_one = min(k + 1, len(letters))
-            is_pause = (
-                letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
-            )
+            is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
             if is_pause and block_len > 10 or block_len > 50:
-                yield last_end,l.index
-                last_end=l.index+10
+                yield last_end, l.index
+                last_end = l.index + 10
                 block_len = 0
-    yield last_end,l.index
+    yield last_end, l.index
 
 
-def main(transript_dir,manual_transcripts_dir):
+def main(transript_dir, manual_transcripts_dir):
     subtitles_dir = f"{transript_dir}/subtitles"
     if os.path.isdir(subtitles_dir):
         shutil.rmtree(subtitles_dir)
@@ -93,30 +102,35 @@ def main(transript_dir,manual_transcripts_dir):
         g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
         raw_letters = [LetterIdx(l, int(i)) for l, i in g]
         assert all(
-            (raw_letters[k].index > raw_letters[k - 1].index for k in range(1, len(raw_letters)))
+            (
+                raw_letters[k].index > raw_letters[k - 1].index
+                for k in range(1, len(raw_letters))
+            )
         )
 
         c_files = sorted(
             [
                 c_file
-                for c_file in Path(manual_transcripts_dir).glob(f"{transcript_file.stem}*.txt")
+                for c_file in Path(manual_transcripts_dir).glob(
+                    f"{transcript_file.stem}*.txt"
+                )
             ],
             key=lambda s: int(s.stem.split("_")[-1]),
         )
         print(f"correction-files:{c_files}")
 
-        subtitles=[]
-        letters=raw_letters
+        subtitles = []
+        letters = raw_letters
         for corrected_transcript_file in c_files:
             corrected_transcript = " ".join(
                 data_io.read_lines(str(corrected_transcript_file))
             )
             letters = incorporate_corrections(corrected_transcript, letters)
-            subtitles.append((corrected_transcript_file.stem,letters))
+            subtitles.append((corrected_transcript_file.stem, letters))
 
         srt_blocks = [
-            build_srt_block(idx, subtitles,start,end,TARGET_SAMPLE_RATE)
-            for idx, (start,end) in enumerate(cut_transcript_at_pauses(raw_letters))
+            build_srt_block(idx, subtitles, start, end, TARGET_SAMPLE_RATE)
+            for idx, (start, end) in enumerate(cut_transcript_at_pauses(raw_letters))
         ]
         data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
 
@@ -192,4 +206,4 @@ if __name__ == "__main__":
     transript_dir = sys.argv[1]
     manual_transcripts_dir = sys.argv[2]
 
-    main(transript_dir,manual_transcripts_dir)
+    main(transript_dir, manual_transcripts_dir)
