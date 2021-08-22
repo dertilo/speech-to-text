@@ -92,7 +92,7 @@ def generate_block_start_ends(
     for k, l in enumerate(letters):
         block_len += 1
         if l.letter == " ":
-            next_one = min(k + 1, len(letters))
+            next_one = min(k + 2, len(letters)) # next token might start with vocal, heuristic to get at "real" start of token
             is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
             if is_pause and block_len > 10 or block_len > 50:
                 yield last_end, l.index
