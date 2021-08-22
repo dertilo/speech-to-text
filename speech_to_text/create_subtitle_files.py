@@ -14,7 +14,7 @@ from pathlib import Path
 from util import data_io
 
 import difflib
-from typing import List, Generator, Tuple
+from typing import List, Generator, Tuple, Dict
 
 from speech_to_text.transcribe_audio import (
     LetterIdx,
@@ -30,32 +30,14 @@ def format_timedelta(milliseconds):
 
 def build_srt_block(
     idx: int,
-    transcripts: List[Tuple[str, List[LetterIdx]]],
-    block_start,
-    block_end,
+    blocks: Dict[str, List[LetterIdx]],
     sample_rate,
 ):
-    def tokenize_letters(lettas: List[LetterIdx]):
-        buffer = []
-        for l in lettas:
-            buffer.append(l)
-            if l.letter == " ":
-                yield buffer
-                buffer = []
-        yield buffer
 
     subtitle_texts = []
     start, end = None, None
     colors = ["#ffffff", "#ff0000", "#0019ff", "#0fff00"]
-    for k, (name, letters) in enumerate(transcripts):
-        tokens = list(tokenize_letters(letters))
-        block = [
-            l
-            for tok in tokens
-            if tok[0].index >= block_start and tok[0].index < block_end
-            for l in tok
-        ]
-        # breakpoint()
+    for k, (name, block) in enumerate(blocks.items()):
         if len(block) > 0:
             if start is None:
                 start = round(1000 * block[0].index / sample_rate)
@@ -72,7 +54,31 @@ def build_srt_block(
 """
 
 
-def cut_transcript_at_pauses(
+def cut_block_out_of_transcript(
+    transcripts: List[Tuple[str, List[LetterIdx]]], block_start, block_end
+):
+    def tokenize_letters(lettas: List[LetterIdx]):
+        buffer = []
+        for l in lettas:
+            buffer.append(l)
+            if l.letter == " ":
+                yield buffer
+                buffer = []
+        yield buffer
+
+    name2block = {
+        name: [
+            l
+            for tok in tokenize_letters(letters)
+            if tok[0].index >= block_start and tok[0].index < block_end
+            for l in tok
+        ]
+        for name, letters in transcripts
+    }
+    return name2block
+
+
+def generate_block_start_ends(
     letters: List[LetterIdx],
 ) -> Generator[int, None, None]:
     """
@@ -128,9 +134,13 @@ def main(transript_dir, manual_transcripts_dir):
             letters = incorporate_corrections(corrected_transcript, letters)
             subtitles.append((corrected_transcript_file.stem, letters))
 
+        blocks = [
+            cut_block_out_of_transcript(subtitles, s, e)
+            for s, e in generate_block_start_ends(raw_letters)
+        ]
         srt_blocks = [
-            build_srt_block(idx, subtitles, start, end, TARGET_SAMPLE_RATE)
-            for idx, (start, end) in enumerate(cut_transcript_at_pauses(raw_letters))
+            build_srt_block(idx, block, TARGET_SAMPLE_RATE)
+            for idx, block in enumerate(blocks)
         ]
         data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
 
