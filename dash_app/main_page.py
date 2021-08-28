@@ -76,9 +76,9 @@ page_content = [
                         id="asr-model-dropdown",
                         options=[
                             {"label": k, "value": v}
-                            for k,v in LANGUAGE_TO_MODELNAME.items()
+                            for k, v in LANGUAGE_TO_MODELNAME.items()
                         ],
-                        value="spanish",
+                        value=LANGUAGE_TO_MODELNAME["spanish"],
                     ),
                 ]
             ),
@@ -89,7 +89,7 @@ page_content = [
                     n_clicks=0,
                     color="primary",
                 ),
-                style={"width": "100%"},
+                style={"width": "100%", "padding-top": 40},
             ),
             dbc.Col(
                 dbc.Button(

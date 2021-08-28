@@ -2,6 +2,7 @@ import json
 import os
 from dataclasses import asdict
 from pathlib import Path
+from typing import Dict
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -16,9 +17,9 @@ from speech_to_text.subtitle_creation import convert_to_wav_transcribe
 from speech_to_text.transcribe_audio import SpeechToText
 
 NO_NAME = "enter some name here"
-LANGUAGE_TO_MODELNAME={
-    "spanish":"jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
-    "english":"jonatasgrosman/wav2vec2-large-xlsr-53-english",
+LANGUAGE_TO_MODELNAME = {
+    "spanish": "jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
+    "english": "jonatasgrosman/wav2vec2-large-xlsr-53-english",
 }
 
 new_text_area_form = dbc.Form(
@@ -41,7 +42,7 @@ def create_raw_transcript(video_file, model_name):
     raw_transcript_file = f"{SUBTITLES_DIR}/{file.stem}_raw_transcript.txt"
     if not os.path.isfile(raw_transcript_file):
         asr = SpeechToText(
-            model_name="model_name",
+            model_name=model_name,
         ).init()
         transcript = convert_to_wav_transcribe(asr, str(file))
         data_io.write_lines(
@@ -62,21 +63,19 @@ def create_raw_transcript(video_file, model_name):
 @app.callback(
     Output("raw-transcript", "children"),
     Input("create-raw-transcripts-button", "n_clicks"),
-    State("transcripts-store", "data"),
+    Input("transcripts-store", "data"),
     State("video-file-dropdown", "value"),
     State("asr-model-dropdown", "value"),
 )
 def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     store_data = get_store_data(store_s)
-    if n_clicks > 0:
-        if "raw-transcript" not in store_data:
-            raw_transcript = create_raw_transcript(
-                video_file, LANGUAGE_TO_MODELNAME[asr_model]
-            )
-        else:
-            raw_transcript = store_data["raw-transcript"]
-
+    if n_clicks > 0 and "raw-transcript" not in store_data:
+        raw_transcript = create_raw_transcript(
+            video_file, LANGUAGE_TO_MODELNAME[asr_model]
+        )
         return [raw_transcript]
+    elif "raw-transcript" in store_data:
+        return [store_data["raw-transcript"].text]
     else:
         raise PreventUpdate
 
@@ -112,7 +111,7 @@ def update_text_areas(store_s: str, n_clicks, new_name):
     return rows
 
 
-def get_store_data(store_s):
+def get_store_data(store_s) -> Dict[str, TranslatedTranscript]:
     store_data = json.loads(store_s) if store_s is not None else {}
     store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
     return store_data
