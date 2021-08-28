@@ -10,13 +10,16 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
-from dash_app.main_page import LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import UPLOAD_DIRECTORY, SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import TranslatedTranscript
 from speech_to_text.subtitle_creation import convert_to_wav_transcribe
 from speech_to_text.transcribe_audio import SpeechToText
 
 NO_NAME = "enter some name here"
+LANGUAGE_TO_MODELNAME={
+    "spanish":"jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
+    "english":"jonatasgrosman/wav2vec2-large-xlsr-53-english",
+}
 
 new_text_area_form = dbc.Form(
     [

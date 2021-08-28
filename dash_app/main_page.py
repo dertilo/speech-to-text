@@ -11,7 +11,7 @@ from util import data_io
 
 from dash_app.app import app
 from dash_app.subtitles_table import process_button
-from dash_app.transcript_text_areas import new_text_area_form
+from dash_app.transcript_text_areas import new_text_area_form, LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import (
     SUBTITLES_DIR,
     save_file,
@@ -55,10 +55,6 @@ video_selection_upload = dbc.Row(
         ),
     ]
 )
-LANGUAGE_TO_MODELNAME={
-    "spanish":"jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
-    "english":"jonatasgrosman/wav2vec2-large-xlsr-53-english",
-}
 page_content = [
     html.H1("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
