@@ -18,6 +18,13 @@ from speech_to_text.transcribe_audio import SpeechToText
 
 NO_NAME = "enter some name here"
 
+transcribe_button = dbc.Button(
+    "transcribe",
+    id="create-raw-transcripts-button",
+    n_clicks=0,
+    color="primary",
+)
+
 new_text_area_form = dbc.Form(
     [
         dbc.FormGroup(
@@ -33,7 +40,7 @@ new_text_area_form = dbc.Form(
 )
 
 
-def create_raw_transcript(video_file, model_name):
+def create_raw_transcript(video_file, model_name)->str:
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
     raw_transcript_file = (
         f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}.txt"
@@ -65,9 +72,10 @@ def create_raw_transcript(video_file, model_name):
     State("video-file-dropdown", "value"),
     State("asr-model-dropdown", "value"),
 )
-def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
+def calc_raw_transcript(n_clicks,store_s, video_file, asr_model):
     store_data = get_store_data(store_s)
-    rtm = raw_transcript_name(asr_model)
+    rtm = "raw-transcript"
+    # assert rtm in store_data,store_data
     if n_clicks > 0 and rtm not in store_data:
         raw_transcript = create_raw_transcript(video_file, asr_model)
     elif rtm in store_data:
@@ -75,8 +83,18 @@ def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     else:
         raise PreventUpdate
     return [
-        html.H2("raw transcript"),
-        raw_transcript,
+        raw_transcript
+        # html.H2("raw transcript"),
+        # dbc.Row(, style={"padding-top": 20}),
+    ]
+
+
+@app.callback(
+    Output("dependent_on_raw_transcript", "children"),
+    Input("raw-transcript", "children"),
+)
+def dependent_on_raw_transcript(_):
+    return [
         dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
         dbc.Row(dbc.Col(process_button, width={"size": 6, "offset": 4})),
         dbc.Row(id="subtitles-text-area", style={"padding-top": 20}),

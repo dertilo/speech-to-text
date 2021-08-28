@@ -105,7 +105,6 @@ page_content = [
 
 )
 def update_store_data(video_file, _,model_name):
-    print(f"got store-data: {data_io.read_json(build_json_name(video_file,model_name))}")
     if os.path.isfile(build_json_name(video_file,model_name)):
         return json.dumps(
             data_io.read_json(build_json_name(video_file,model_name))
