@@ -59,7 +59,7 @@ def create_raw_transcript(video_file):
     Output("languages-text-areas", "children"),
     Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
-    Input("video-file-dropdown", "value"),
+    State("video-file-dropdown", "value"),
     State("new-transcript-name", "value"),
 )
 def update_text_areas(store_s: str, n_clicks, video_file, new_name):

@@ -114,7 +114,7 @@ page_content = [
     Input("load-dumped-data-signal", "data"),
 )
 def update_store_data(video_name, _):
-    if os.path.isfile(f"{SUBTITLES_DIR}/{video_name}.json"):
+    if os.path.isfile(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json"):
         print("update_store_data")
         return json.dumps(
             data_io.read_json(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json")
