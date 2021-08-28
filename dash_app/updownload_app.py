@@ -9,7 +9,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 
 
-APP_DATA_DIR = f"{os.environ['DATA_DIR']}/app_uploaded_files"
+APP_DATA_DIR = f"{os.environ['DATA_DIR']}/app_data"
 SUBTITLES_DIR = f"{os.environ['DATA_DIR']}/subtitles_data"
 
 if not os.path.exists(APP_DATA_DIR):

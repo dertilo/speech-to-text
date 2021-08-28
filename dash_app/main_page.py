@@ -104,12 +104,10 @@ page_content = [
     State("asr-model-dropdown", "value"),
 )
 def update_store_data(video_file, _, model_name):
-    if os.path.isfile(build_json_name(video_file, model_name)):
+
+    if video_file is not None and os.path.isfile(build_json_name(video_file, model_name)):
         return json.dumps(data_io.read_json(build_json_name(video_file, model_name)))
     else:
-        print(
-            f"DEBUG: did not find store_data: {build_json_name(video_file,model_name)} is not existing"
-        )
         raise PreventUpdate
 
 

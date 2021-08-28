@@ -78,7 +78,7 @@ def calc_raw_transcript(
 ):
     store_data = get_store_data(store_s)
     rtm = "raw-transcript"
-    assert rtm in store_data,store_data
+
     if n_clicks > 0 and rtm not in store_data:
         raw_transcript = create_raw_transcript(video_file, asr_model)
     elif rtm in store_data and current_raw_transcript != store_data[rtm].text:

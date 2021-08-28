@@ -38,7 +38,7 @@ process_button = dbc.Button(
 )
 def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles, model_name):
     assert all((isinstance(s, str) for s in texts))
-    if n_clicks > 0:
+    if n_clicks > 0 and video_file is not None:
         assert video_file is not None
         data = {
             title: TranslatedTranscript(title, k, text)

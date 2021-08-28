@@ -1,7 +1,9 @@
 tqdm
 tilosutils@git+https://git@github.com/dertilo/tilosutils.git#egg=tilosutils
+text_processing@git+https://git@github.com/dertilo/text-processing.git#egg=text_processing
 speech_processing@git+https://git@github.com/dertilo/speech-processing.git#egg=speech_processing
 dash
+dash_auth
 dash-renderer
 librosa
 dash_html_components
@@ -11,3 +13,4 @@ dash_core_components
 dash_table
 numpy
 pandas
+pysubs2
