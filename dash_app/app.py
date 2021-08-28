@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from dataclasses import dataclass, asdict
 from time import sleep
 
 sys.path.append(".")
@@ -122,7 +123,12 @@ page_content = [
             dbc.Col(html.Div(id="video-player-subs")),
         ]
     ),
-    dbc.Row([html.H2("raw transcript"), dbc.Spinner(html.Div(id="raw-transcript"))]),
+    dbc.Row(
+        [
+            html.H2("raw transcript"),
+            dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
+        ]
+    ),
     dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
     dbc.Row(
         [
@@ -192,7 +198,14 @@ def create_raw_transcript(video_file):
         )
     else:
         raw_transcript = list(data_io.read_lines(raw_transcript_file))[0]
-    return [raw_transcript]
+    return raw_transcript
+
+
+@dataclass
+class TranscriptDatum:
+    name: str
+    order: int
+    text: str
 
 
 @app.callback(
@@ -206,7 +219,10 @@ def create_raw_transcript(video_file):
 def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
     if n_clicks > 0:
         assert video_name is not None
-        data = {title: text for title, text in zip(titles, texts)}
+        data = {
+            title: TranscriptDatum(title, k, text)
+            for k, (title, text) in enumerate(zip(titles, texts))
+        }
         data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
 
         subtitles = dbc.Row(
@@ -248,26 +264,32 @@ def update_store_data(video_name, _):
 )
 def update_text_areas(store_s: str, n_clicks, video_file, new_name):
     store_data = json.loads(store_s) if store_s is not None else {}
-    print(store_data)
+    store_data = {name: TranscriptDatum(**d) for name, d in store_data.items()}
+    print(f"store-data: {[asdict(v) for v in store_data.value()]}")
     if "raw-transcript" not in store_data:
         raw_transcript = create_raw_transcript(video_file)
-        store_data["raw-transcript"] = raw_transcript
+        store_data["raw-transcript"] = TranscriptDatum(
+            "raw-transcript", 0, raw_transcript
+        )
 
     if new_name is not None and new_name != NO_NAME:
-        store_data[new_name] = "enter text here"
-    return store_data["raw-transcript"], [
+        store_data[new_name] = TranscriptDatum(
+            "raw-transcript", len(store_data.keys()), "enter text here"
+        )
+
+    return [store_data["raw-transcript"].text], [
         dbc.Row(
             [
                 html.H5(name),
                 dbc.Textarea(
                     title=name,
                     id={"type": "transcript-text", "name": name},
-                    value=text,
-                    style={"width": "90%", "height": 200},
+                    value=sd.text,
+                    style={"width": "90%", "height": 200, "fontSize": 11},
                 ),
             ]
         )
-        for k, (name, text) in enumerate(store_data.items())
+        for name, sd in sorted(store_data.items(), key=lambda x: x[1].order)
     ]
 
 
