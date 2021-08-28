@@ -1,10 +1,17 @@
 import json
 import os
 import sys
+
+sys.path.append(".")
+
 from dataclasses import dataclass, asdict
 from time import sleep
 
-sys.path.append(".")
+from speech_to_text.create_subtitle_files import (
+    TranslatedTranscript,
+    segment_transcript_to_subtitle_blocks,
+)
+
 
 from pprint import pprint
 
@@ -201,13 +208,6 @@ def create_raw_transcript(video_file):
     return raw_transcript
 
 
-@dataclass
-class TranscriptDatum:
-    name: str
-    order: int
-    text: str
-
-
 @app.callback(
     Output("load-dumped-data-signal", "data"),
     Output("subtitles-text-area", "children"),
@@ -220,17 +220,26 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
     if n_clicks > 0:
         assert video_name is not None
         data = {
-            title: TranscriptDatum(title, k, text)
+            title: TranslatedTranscript(title, k, text)
             for k, (title, text) in enumerate(zip(titles, texts))
         }
-        data_io.write_json(f"{SUBTITLES_DIR}/{video_name}.json", data)
+        data_io.write_json(
+            f"{SUBTITLES_DIR}/{Path(video_name).stem}.json",
+            {name: asdict(v) for name, v in data.items()},
+        )
 
+        named_blocks = segment_transcript_to_subtitle_blocks(
+            f"{SUBTITLES_DIR}/{Path(video_name).stem}_letters.csv", list(data.values())
+        )
         subtitles = dbc.Row(
             [
                 html.H5("subtitles"),
                 dash_table.DataTable(
                     columns=[{"id": cn, "name": cn} for cn in ["start-time"] + titles],
-                    data=[dict({t: i for t in titles}) for i in range(0, 100)],
+                    data=[
+                        {name: "".join([l.letter for l in b[name]]) for name in titles}
+                        for b in named_blocks
+                    ],
                     style_table={"height": 500, "overflowY": "scroll", "width": 400},
                 ),
             ]
@@ -248,7 +257,7 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
 def update_store_data(video_name, _):
     if os.path.isfile(f"{SUBTITLES_DIR}/{video_name}.json"):
         print("update_store_data")
-        return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{video_name}.json"))
+        return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json"))
     else:
         print(f"not updated update_store_data")
         raise PreventUpdate
@@ -264,16 +273,16 @@ def update_store_data(video_name, _):
 )
 def update_text_areas(store_s: str, n_clicks, video_file, new_name):
     store_data = json.loads(store_s) if store_s is not None else {}
-    store_data = {name: TranscriptDatum(**d) for name, d in store_data.items()}
-    print(f"store-data: {[asdict(v) for v in store_data.value()]}")
+    store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
+    print(f"store-data: {[asdict(v) for v in store_data.values()]}")
     if "raw-transcript" not in store_data:
         raw_transcript = create_raw_transcript(video_file)
-        store_data["raw-transcript"] = TranscriptDatum(
+        store_data["raw-transcript"] = TranslatedTranscript(
             "raw-transcript", 0, raw_transcript
         )
 
     if new_name is not None and new_name != NO_NAME:
-        store_data[new_name] = TranscriptDatum(
+        store_data[new_name] = TranslatedTranscript(
             "raw-transcript", len(store_data.keys()), "enter text here"
         )
 
