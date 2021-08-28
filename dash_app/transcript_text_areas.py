@@ -119,7 +119,7 @@ def update_text_areas(store_s: str, n_clicks, raw_transcript, new_name, asr_mode
     store_data = get_store_data(store_s)
     print(f"store-data: {[asdict(v) for v in store_data.values()]}")
 
-    if raw_transcript_name(asr_model) in store_data.keys():
+    if "raw-transcript" in store_data.keys():
         transcripts = list(store_data.values())
     elif raw_transcript is not None:
         transcripts = [TranslatedTranscript("raw-transcript", 0, raw_transcript)]
