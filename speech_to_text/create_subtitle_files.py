@@ -111,46 +111,31 @@ def generate_block_start_ends(
     yield last_end, l.index
 
 
-def create_subtitles(transript_dir, manual_transcripts_dir):
-    subtitles_dir = f"{transript_dir}/subtitles"
-    if os.path.isdir(subtitles_dir):
-        shutil.rmtree(subtitles_dir)
-    os.makedirs(subtitles_dir)
-    for transcript_file in Path(transript_dir).glob("*.csv"):
-        named_blocks = segment_transcript_to_subtitle_blocks(
-            transcript_file, manual_transcripts_dir
-        )
-        subs = SSAFile()
-        colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
-        for k, name in enumerate(named_blocks[0].keys()):
-            my_style = subs.styles["Default"].copy()
-            my_style.primarycolor = colors[k]
-            subs.styles[name] = my_style
+def create_ass_file(named_blocks: List[Dict[str, List[LetterIdx]]], ass_file):
+    subs = SSAFile()
+    colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
+    for k, name in enumerate(named_blocks[0].keys()):
+        my_style = subs.styles["Default"].copy()
+        my_style.primarycolor = colors[k]
+        subs.styles[name] = my_style
 
-        for name2block in named_blocks:
-            start, end = None, None
-            for name, block in name2block.items():
-                if len(block) > 0:
-                    if start is None:
-                        start = create_timestamp(block[0].index)
-                        end = create_timestamp(block[-1].index)
-                    sub_line = SSAEvent(
-                        start=start,
-                        end=end,
-                        text="".join((l.letter for l in block)),
-                    )
-                    sub_line.style = name
-                    subs.append(sub_line)
-                else:
-                    print(f"WARNING: got empty block! {name} ")
-        subtitles_file = f"{subtitles_dir}/{transcript_file.stem}.ass"
-        subs.save(subtitles_file)
-        yield Path(subtitles_file)
-        # srt_blocks = [
-        #     build_srt_block(idx, block, TARGET_SAMPLE_RATE)
-        #     for idx, block in enumerate(blocks)
-        # ]
-        # data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
+    for name2block in named_blocks:
+        start, end = None, None
+        for name, block in name2block.items():
+            if len(block) > 0:
+                if start is None:
+                    start = create_timestamp(block[0].index)
+                    end = create_timestamp(block[-1].index)
+                sub_line = SSAEvent(
+                    start=start,
+                    end=end,
+                    text="".join((l.letter for l in block)),
+                )
+                sub_line.style = name
+                subs.append(sub_line)
+            else:
+                print(f"WARNING: got empty block! {name} ")
+    subs.save(ass_file)
 
 
 @dataclass
