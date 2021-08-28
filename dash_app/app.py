@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from datetime import datetime, timedelta
 
 sys.path.append(".")
 
@@ -19,7 +20,7 @@ import dash_table
 from dash.exceptions import PreventUpdate
 
 from speech_to_text.subtitle_creation import convert_to_wav_transcribe
-from speech_to_text.transcribe_audio import SpeechToText
+from speech_to_text.transcribe_audio import SpeechToText, TARGET_SAMPLE_RATE
 
 from pathlib import Path
 
@@ -233,18 +234,46 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
         )
         subtitles = dbc.Row(
             [
-                html.H5("subtitles"),
                 dash_table.DataTable(
                     columns=[{"id": cn, "name": cn} for cn in ["start-time"] + titles],
                     data=[
-                        {name: "".join([l.letter for l in b[name]]) for name in titles}
+                        {
+                            **{
+                                name: "".join([l.letter for l in b[name]])
+                                for name in titles
+                            },
+                            **{
+                                "start-time": str(timedelta(
+                                        milliseconds=round(
+                                            1000
+                                            * b[titles[0]][0].index
+                                            / TARGET_SAMPLE_RATE
+                                        )
+                                    ))
+                            },
+                        }
                         for b in named_blocks
                     ],
-                    style_table={"height": 500, "overflowY": "scroll", "width": 400},
+                    style_table={
+                        "height": 200 * len(titles),
+                        "overflowY": "scroll",
+                        "width": "100%",
+                        "font-size": 9,
+                    },
+                    style_cell={
+                        # "overflow": "hidden",
+                        # "textOverflow": "ellipsis",
+                        # "maxWidth": 0,
+                        "textAlign": "left",
+                        "height": "auto",
+                    },
                 ),
             ]
         )
-        return "content-of-this-string-does-not-matter", subtitles
+        return "content-of-this-string-does-not-matter", [
+            html.H5("segmentation"),
+            subtitles,
+        ]
     else:
         raise PreventUpdate
 
@@ -257,7 +286,9 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
 def update_store_data(video_name, _):
     if os.path.isfile(f"{SUBTITLES_DIR}/{video_name}.json"):
         print("update_store_data")
-        return json.dumps(data_io.read_json(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json"))
+        return json.dumps(
+            data_io.read_json(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json")
+        )
     else:
         print(f"not updated update_store_data")
         raise PreventUpdate
