@@ -172,11 +172,7 @@ app.layout = html.Div(
 )
 
 
-@app.callback(
-    Output("raw-transcript", "children"),
-    Input("video-file-dropdown", "value"),
-)
-def update_raw_transcript(video_file):
+def create_raw_transcript(video_file):
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
     raw_transcript_file = f"{SUBTITLES_DIR}/{file.stem}_raw_transcript.txt"
     if not os.path.isfile(raw_transcript_file):
@@ -195,8 +191,6 @@ def update_raw_transcript(video_file):
             [raw_transcript],
         )
     else:
-        print("pretend processing")
-        sleep(5)
         raw_transcript = list(data_io.read_lines(raw_transcript_file))[0]
     return [raw_transcript]
 
@@ -245,17 +239,23 @@ def update_store_data(video_name, _):
 
 
 @app.callback(
+    Output("raw-transcript", "children"),
     Output("languages-text-areas", "children"),
     Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
+    Input("video-file-dropdown", "value"),
     State("new-transcript-name", "value"),
 )
-def update_text_areas(store_s: str, n_clicks, new_name):
+def update_text_areas(store_s: str, n_clicks, video_file, new_name):
     store_data = json.loads(store_s) if store_s is not None else {}
     print(store_data)
+    if "raw-transcript" not in store_data:
+        raw_transcript = create_raw_transcript(video_file)
+        store_data["raw-transcript"] = raw_transcript
+
     if new_name is not None and new_name != NO_NAME:
         store_data[new_name] = "enter text here"
-    return [
+    return store_data["raw-transcript"], [
         dbc.Row(
             [
                 html.H5(name),
