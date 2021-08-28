@@ -11,8 +11,8 @@ from util import data_io
 
 from dash_app.app import app
 from dash_app.subtitle_video_creation import burn_into_video_form
-from dash_app.subtitles_table import process_button, build_json_name
-from dash_app.common import LANGUAGE_TO_MODELNAME
+from dash_app.common import LANGUAGE_TO_MODELNAME, build_json_name
+from dash_app.transcript_text_areas import transcribe_button
 from dash_app.updownload_app import (
     save_file,
     uploaded_files,
@@ -83,12 +83,7 @@ page_content = [
                 ]
             ),
             dbc.Col(
-                dbc.Button(
-                    "transcribe",
-                    id="create-raw-transcripts-button",
-                    n_clicks=0,
-                    color="primary",
-                ),
+                transcribe_button,
                 style={"width": "100%", "padding-top": 40},
             ),
             dbc.Col(
@@ -98,6 +93,7 @@ page_content = [
         ]
     ),
     dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
+    html.Div(id="dependent_on_raw_transcript")
 ]
 
 
@@ -109,6 +105,7 @@ page_content = [
 
 )
 def update_store_data(video_file, _,model_name):
+    print(f"got store-data: {data_io.read_json(build_json_name(video_file,model_name))}")
     if os.path.isfile(build_json_name(video_file,model_name)):
         return json.dumps(
             data_io.read_json(build_json_name(video_file,model_name))

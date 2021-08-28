@@ -29,3 +29,7 @@ def get_store_data(store_s) -> Dict[str, TranslatedTranscript]:
     store_data = json.loads(store_s) if store_s is not None else {}
     store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
     return store_data
+
+
+def build_json_name(video_file,model_name):
+    return f"{SUBTITLES_DIR}/{Path(video_file).stem}_{raw_transcript_name(model_name)}.json"

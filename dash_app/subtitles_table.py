@@ -1,6 +1,5 @@
 from dataclasses import asdict
 from datetime import timedelta
-from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -10,8 +9,7 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
-from dash_app.common import get_letters_csv, raw_transcript_name
-from dash_app.updownload_app import SUBTITLES_DIR
+from dash_app.common import get_letters_csv, build_json_name
 from speech_to_text.create_subtitle_files import (
     TranslatedTranscript,
     segment_transcript_to_subtitle_blocks,
@@ -25,8 +23,6 @@ process_button = dbc.Button(
     color="primary",
 )
 
-def build_json_name(video_file,model_name):
-    return f"{SUBTITLES_DIR}/{Path(video_file).stem}_{raw_transcript_name(model_name)}.json"
 
 @app.callback(
     Output("load-dumped-data-signal", "data"),
@@ -45,7 +41,7 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_nam
             for k, (title, text) in enumerate(zip(titles, texts))
         }
         data_io.write_json(
-            build_json_name(video_file,model_name),
+            build_json_name(video_file, model_name),
             {name: asdict(v) for name, v in data.items()},
         )
 
@@ -94,8 +90,7 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_nam
             style={"width": "100%"},
         )
         return "content-of-this-string-does-not-matter", [
-            html.H5("segmentation"),
-            subtitles,
+            subtitles
         ]
     else:
         raise PreventUpdate
