@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
+from dash_app.subtitle_video_creation import burn_into_video_form
 from dash_app.subtitles_table import process_button
 from dash_app.transcript_text_areas import new_text_area_form, LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import (
@@ -92,12 +93,7 @@ page_content = [
                 style={"width": "100%", "padding-top": 40},
             ),
             dbc.Col(
-                dbc.Button(
-                    "burn into video",
-                    id="process-video-button",
-                    n_clicks=0,
-                    color="primary",
-                ),
+                burn_into_video_form,
                 style={"width": "100%"},
             ),
         ]

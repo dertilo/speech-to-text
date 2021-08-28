@@ -66,6 +66,7 @@ def raw_transcript_name(asr_model_name):
     return (
         f"raw-transcript-{asr_model_name}".replace(" ", "")
         .replace("-", "")
+        .replace("/", "_")
         .replace(".", "")
     )
 
