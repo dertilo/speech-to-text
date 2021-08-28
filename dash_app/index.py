@@ -1,11 +1,14 @@
 import json
 import os
 import sys
+
 sys.path.append(".")
 
-from dash_app.app import server, app
-from dash_app.transcript_text_areas import NO_NAME
+from dash_app.subtitles_table import process_button
 
+
+from dash_app.app import server, app
+from dash_app.transcript_text_areas import new_text_area_form
 
 from dash.exceptions import PreventUpdate
 
@@ -74,20 +77,6 @@ video_selection_upload = dbc.Row(
     ]
 )
 
-new_text_area_form = dbc.Form(
-    [
-        dbc.FormGroup(
-            [
-                dbc.Label("Name", className="mr-2"),
-                dbc.Input(type="name", id="new-transcript-name", placeholder=NO_NAME),
-            ],
-            className="mr-3",
-        ),
-        dbc.Button("create new transcript", id="new-transcript-button"),
-    ],
-    inline=True,
-)
-
 page_content = [
     html.H1("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
@@ -110,12 +99,7 @@ page_content = [
     dbc.Row(
         [
             dbc.Col(
-                dbc.Button(
-                    "create subtitles",
-                    id="process-texts-button",
-                    n_clicks=0,
-                    color="primary",
-                ),
+                process_button,
                 style={"width": "100%"},
             ),
             dbc.Col(

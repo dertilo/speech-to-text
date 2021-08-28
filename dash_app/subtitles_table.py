@@ -11,9 +11,18 @@ from util import data_io
 
 from dash_app.app import app
 from dash_app.updownload_app import SUBTITLES_DIR
-from speech_to_text.create_subtitle_files import TranslatedTranscript, \
-    segment_transcript_to_subtitle_blocks
+from speech_to_text.create_subtitle_files import (
+    TranslatedTranscript,
+    segment_transcript_to_subtitle_blocks,
+)
 from speech_to_text.transcribe_audio import TARGET_SAMPLE_RATE
+
+process_button = dbc.Button(
+    "create subtitles",
+    id="process-texts-button",
+    n_clicks=0,
+    color="primary",
+)
 
 
 @app.callback(
@@ -50,13 +59,15 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
                                 for name in titles
                             },
                             **{
-                                "start-time": str(timedelta(
+                                "start-time": str(
+                                    timedelta(
                                         milliseconds=round(
                                             1000
                                             * b[titles[0]][0].index
                                             / TARGET_SAMPLE_RATE
                                         )
-                                    ))
+                                    )
+                                )
                             },
                         }
                         for b in named_blocks

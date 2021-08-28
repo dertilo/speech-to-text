@@ -16,6 +16,20 @@ from speech_to_text.transcribe_audio import SpeechToText
 
 NO_NAME = "enter some name here"
 
+new_text_area_form = dbc.Form(
+    [
+        dbc.FormGroup(
+            [
+                dbc.Label("Name", className="mr-2"),
+                dbc.Input(type="name", id="new-transcript-name", placeholder=NO_NAME),
+            ],
+            className="mr-3",
+        ),
+        dbc.Button("create new transcript", id="new-transcript-button"),
+    ],
+    inline=True,
+)
+
 
 def create_raw_transcript(video_file):
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
