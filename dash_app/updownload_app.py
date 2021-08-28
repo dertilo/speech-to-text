@@ -25,7 +25,7 @@ if not os.path.exists(SUBTITLES_DIR):
 # app = dash.Dash(server=server)
 
 
-def save_file(name, content,date):
+def save_file(name, content, date):
     """Decode and store a file uploaded with Plotly Dash."""
     # print(f"date: {date}")
     data = content.encode("utf8").split(b";base64,")[1]
@@ -47,5 +47,6 @@ def file_download_link(filename):
     """Create a Plotly Dash 'A' element that downloads a file from the app."""
     location = "/download/{}".format(urlquote(filename))
     return html.A(filename, href=location)
+
 
 # html.Li(file_download_link(filename))
