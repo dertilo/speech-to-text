@@ -34,6 +34,7 @@ process_button = dbc.Button(
     State("asr-model-dropdown", "value"),
 )
 def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_name):
+    assert all((isinstance(s,str) for s in texts))
     if n_clicks > 0:
         assert video_file is not None
         data = {
