@@ -96,7 +96,9 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles, model_na
         return (
             "content-of-this-string-does-not-matter",
             [subtitles],
-            json.dumps([SubtitleBlock.from_dict_letters(dl) for dl in named_blocks]),
+            json.dumps(
+                [asdict(SubtitleBlock.from_dict_letters(dl)) for dl in named_blocks]
+            ),
         )
     else:
         raise PreventUpdate

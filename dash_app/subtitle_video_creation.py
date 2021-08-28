@@ -1,10 +1,12 @@
 import json
 import subprocess
 from pathlib import Path
+from pprint import pprint
 from tempfile import NamedTemporaryFile
 import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 
 from dash_app.app import app
 from dash_app.common import get_store_data
@@ -59,15 +61,24 @@ def update_radio_selection(store_s):
     State("video-file-dropdown", "value"),
 )
 def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
+    if store_s is None:
+        raise PreventUpdate
+
     video_file = Path(f"{APP_DATA_DIR}/{video_file_name}")
     video_subs_file_name = f"{video_file_name}_subs.mp4"
+
+    def select(sb: SubtitleBlock, selection):
+        sb.name_texts = [(n, t) for n, t in sb.name_texts if n in selection]
+        return sb
+
     subtitle_blocks = [
-        SubtitleBlock(**{k: d[k] for k in selection}) for d in json.loads(store_s)
+        select(SubtitleBlock(**d), selection) for d in json.loads(store_s)
     ]
+
     with NamedTemporaryFile(suffix=".ass") as f:
         create_ass_file(subtitle_blocks, f.name)
         subprocess.check_output(
-            f"/usr/bin/ffmpeg -i {video_file} -vf ass={f.name} {APP_DATA_DIR}/{video_subs_file_name} -y",
+            f"/usr/bin/ffmpeg -i '{video_file}' -vf ass={f.name} '{APP_DATA_DIR}/{video_subs_file_name}' -y",
             shell=True,
         )
     return [

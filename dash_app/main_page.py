@@ -64,7 +64,7 @@ page_content = [
             dbc.Col(
                 html.Div(id="video-player"),
             ),
-            dbc.Col(html.Div(id="video-player-subs")),
+            dbc.Col(dbc.Spinner(html.Div(id="video-player-subs"))),
         ]
     ),
     dbc.Row(
