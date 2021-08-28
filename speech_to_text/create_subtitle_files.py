@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+from dataclasses import dataclass
 
 from pysubs2 import SSAFile, Color, SSAEvent
 from pysubs2.time import make_time
@@ -92,7 +93,9 @@ def generate_block_start_ends(
     for k, l in enumerate(letters):
         block_len += 1
         if l.letter == " ":
-            next_one = min(k + 2, len(letters)) # next token might start with vocal, heuristic to get at "real" start of token
+            next_one = min(
+                k + 2, len(letters)
+            )  # next token might start with vocal, heuristic to get at "real" start of token
             is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
             if is_pause and block_len > 10 or block_len > 50:
                 yield last_end, l.index
@@ -107,39 +110,9 @@ def create_subtitles(transript_dir, manual_transcripts_dir):
         shutil.rmtree(subtitles_dir)
     os.makedirs(subtitles_dir)
     for transcript_file in Path(transript_dir).glob("*.csv"):
-        g = (line.split("\t") for line in data_io.read_lines(str(transcript_file)))
-        raw_letters = [LetterIdx(l, int(i)) for l, i in g]
-        assert all(
-            (
-                raw_letters[k].index > raw_letters[k - 1].index
-                for k in range(1, len(raw_letters))
-            )
+        named_blocks = segment_transcript_to_subtitle_blocks(
+            transcript_file, manual_transcripts_dir
         )
-
-        c_files = sorted(
-            [
-                c_file
-                for c_file in Path(manual_transcripts_dir).glob(
-                    f"{transcript_file.stem}*.txt"
-                )
-            ],
-            key=lambda s: int(s.stem.split("_")[-1]),
-        )
-        print(f"correction-files:{c_files}")
-
-        subtitles = []
-        letters = raw_letters
-        for corrected_transcript_file in c_files:
-            corrected_transcript = " ".join(
-                data_io.read_lines(str(corrected_transcript_file))
-            )
-            letters = incorporate_corrections(corrected_transcript, letters)
-            subtitles.append((corrected_transcript_file.stem, letters))
-
-        named_blocks = [
-            cut_block_out_of_transcript(subtitles, s, e)
-            for s, e in generate_block_start_ends(raw_letters)
-        ]
         subs = SSAFile()
         colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
         for k, name in enumerate(named_blocks[0].keys()):
@@ -171,6 +144,41 @@ def create_subtitles(transript_dir, manual_transcripts_dir):
         #     for idx, block in enumerate(blocks)
         # ]
         # data_io.write_lines(f"{subtitles_dir}/{transcript_file.stem}.srt", srt_blocks)
+
+
+@dataclass
+class TranslatedTranscript:
+    """
+    is to be aligned an cut into blocks to form subtitles together with verbatim transcript
+    """
+
+    name: str
+    order: int
+    text: str
+
+
+def segment_transcript_to_subtitle_blocks(
+    transcript_letters_csv, translated_transcript: List[TranslatedTranscript]
+) -> List[Dict[str, List[LetterIdx]]]:
+    g = (line.split("\t") for line in data_io.read_lines(str(transcript_letters_csv)))
+    raw_letters = [LetterIdx(l, int(i)) for l, i in g]
+    assert all(
+        (
+            raw_letters[k].index > raw_letters[k - 1].index
+            for k in range(1, len(raw_letters))
+        )
+    )
+
+    subtitles = []
+    letters = raw_letters
+    for tt in sorted(translated_transcript,key=lambda x: x.order):
+        letters = incorporate_corrections(tt.text, letters)
+        subtitles.append((tt.name, letters))
+    named_blocks = [
+        cut_block_out_of_transcript(subtitles, s, e)
+        for s, e in generate_block_start_ends(raw_letters)
+    ]
+    return named_blocks
 
 
 def create_timestamp(index):
