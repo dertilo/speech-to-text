@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
+from dash_app.main_page import LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import UPLOAD_DIRECTORY, SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import TranslatedTranscript
 from speech_to_text.subtitle_creation import convert_to_wav_transcribe
@@ -32,12 +33,12 @@ new_text_area_form = dbc.Form(
 )
 
 
-def create_raw_transcript(video_file):
+def create_raw_transcript(video_file, model_name):
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
     raw_transcript_file = f"{SUBTITLES_DIR}/{file.stem}_raw_transcript.txt"
     if not os.path.isfile(raw_transcript_file):
         asr = SpeechToText(
-            model_name="jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
+            model_name="model_name",
         ).init()
         transcript = convert_to_wav_transcribe(asr, str(file))
         data_io.write_lines(
@@ -60,12 +61,15 @@ def create_raw_transcript(video_file):
     Input("create-raw-transcripts-button", "n_clicks"),
     State("transcripts-store", "data"),
     State("video-file-dropdown", "value"),
+    State("asr-model-dropdown", "value"),
 )
-def calc_raw_transcript(n_clicks, store_s, video_file):
+def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     store_data = get_store_data(store_s)
     if n_clicks > 0:
         if "raw-transcript" not in store_data:
-            raw_transcript = create_raw_transcript(video_file)
+            raw_transcript = create_raw_transcript(
+                video_file, LANGUAGE_TO_MODELNAME[asr_model]
+            )
         else:
             raw_transcript = store_data["raw-transcript"]
 

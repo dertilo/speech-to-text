@@ -55,6 +55,10 @@ video_selection_upload = dbc.Row(
         ),
     ]
 )
+LANGUAGE_TO_MODELNAME={
+    "spanish":"jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
+    "english":"jonatasgrosman/wav2vec2-large-xlsr-53-english",
+}
 page_content = [
     html.H1("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
@@ -67,26 +71,41 @@ page_content = [
             dbc.Col(html.Div(id="video-player-subs")),
         ]
     ),
-    dbc.Row([
-        dbc.Col(
-            dbc.Button(
-                "transcribe",
-                id="create-raw-transcripts-button",
-                n_clicks=0,
-                color="primary",
+    dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.Label("language"),
+                    dcc.Dropdown(
+                        id="asr-model-dropdown",
+                        options=[
+                            {"label": k, "value": v}
+                            for k,v in LANGUAGE_TO_MODELNAME.items()
+                        ],
+                        value="spanish",
+                    ),
+                ]
             ),
-            style={"width": "100%"},
-        ),
-        dbc.Col(
-            dbc.Button(
-                "burn into video",
-                id="process-video-button",
-                n_clicks=0,
-                color="primary",
+            dbc.Col(
+                dbc.Button(
+                    "transcribe",
+                    id="create-raw-transcripts-button",
+                    n_clicks=0,
+                    color="primary",
+                ),
+                style={"width": "100%"},
             ),
-            style={"width": "100%"},
-        )
-    ]),
+            dbc.Col(
+                dbc.Button(
+                    "burn into video",
+                    id="process-video-button",
+                    n_clicks=0,
+                    color="primary",
+                ),
+                style={"width": "100%"},
+            ),
+        ]
+    ),
     dbc.Row(
         [
             html.H2("raw transcript"),
