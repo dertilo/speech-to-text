@@ -16,7 +16,7 @@ from dash_app.transcript_text_areas import transcribe_button
 from dash_app.updownload_app import (
     save_file,
     uploaded_files,
-    UPLOAD_DIRECTORY,
+    APP_DATA_DIR,
 )
 
 video_selection_upload = dbc.Row(
@@ -133,7 +133,7 @@ def update_video_file_dropdown(contents, names, dates):
     Input("video-file-dropdown", "value"),
 )
 def update_video_player(file):
-    fullfile = f"{UPLOAD_DIRECTORY}/{file}"
+    fullfile = f"{APP_DATA_DIR}/{file}"
     return [
         html.H5(f"{Path(fullfile).name}"),
         html.Video(

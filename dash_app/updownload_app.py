@@ -9,11 +9,11 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 
 
-UPLOAD_DIRECTORY = f"{os.environ['DATA_DIR']}/app_uploaded_files"
+APP_DATA_DIR = f"{os.environ['DATA_DIR']}/app_uploaded_files"
 SUBTITLES_DIR = f"{os.environ['DATA_DIR']}/subtitles_data"
 
-if not os.path.exists(UPLOAD_DIRECTORY):
-    os.makedirs(UPLOAD_DIRECTORY)
+if not os.path.exists(APP_DATA_DIR):
+    os.makedirs(APP_DATA_DIR)
 
 if not os.path.exists(SUBTITLES_DIR):
     os.makedirs(SUBTITLES_DIR)
@@ -29,15 +29,15 @@ def save_file(name, content, date):
     """Decode and store a file uploaded with Plotly Dash."""
     # print(f"date: {date}")
     data = content.encode("utf8").split(b";base64,")[1]
-    with open(os.path.join(UPLOAD_DIRECTORY, name), "wb") as fp:
+    with open(os.path.join(APP_DATA_DIR, name), "wb") as fp:
         fp.write(base64.decodebytes(data))
 
 
 def uploaded_files():
     """List the files in the upload directory."""
     files = []
-    for filename in os.listdir(UPLOAD_DIRECTORY):
-        path = os.path.join(UPLOAD_DIRECTORY, filename)
+    for filename in os.listdir(APP_DATA_DIR):
+        path = os.path.join(APP_DATA_DIR, filename)
         if os.path.isfile(path):
             files.append(filename)
     return files

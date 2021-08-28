@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict
 
-from dash_app.updownload_app import UPLOAD_DIRECTORY, SUBTITLES_DIR
+from dash_app.updownload_app import APP_DATA_DIR, SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import TranslatedTranscript
 
 LANGUAGE_TO_MODELNAME = {
@@ -12,7 +12,7 @@ LANGUAGE_TO_MODELNAME = {
 
 
 def get_letters_csv(video_file, model_name):
-    file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
+    file = Path(f"{APP_DATA_DIR}/{video_file}")
     return f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}_letters.csv"
 
 

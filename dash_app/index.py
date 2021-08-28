@@ -11,19 +11,19 @@ from flask import send_from_directory
 import dash_bootstrap_components as dbc
 
 from dash_app.updownload_app import (
-    UPLOAD_DIRECTORY,
+    APP_DATA_DIR,
 )
 
 
 @server.route("/download/<path:path>")
 def download(path):
     """Serve a file from the upload directory."""
-    return send_from_directory(UPLOAD_DIRECTORY, path, as_attachment=True)
+    return send_from_directory(APP_DATA_DIR, path, as_attachment=True)
 
 
 @server.route("/files/<path:path>")
 def serve_static(path):
-    return send_from_directory(UPLOAD_DIRECTORY, path, as_attachment=False)
+    return send_from_directory(APP_DATA_DIR, path, as_attachment=False)
 
 
 app.layout = html.Div(
@@ -32,6 +32,7 @@ app.layout = html.Div(
             page_content,
         ),
         dcc.Store(id="transcripts-store"),
+        dcc.Store(id="subtitle-store"),
         dcc.Store(id="load-dumped-data-signal"),
     ]
 )

@@ -1,3 +1,4 @@
+import json
 from dataclasses import asdict
 from datetime import timedelta
 
@@ -13,6 +14,7 @@ from dash_app.common import get_letters_csv, build_json_name
 from speech_to_text.create_subtitle_files import (
     TranslatedTranscript,
     segment_transcript_to_subtitle_blocks,
+    SubtitleBlock,
 )
 from speech_to_text.transcribe_audio import TARGET_SAMPLE_RATE
 
@@ -27,14 +29,15 @@ process_button = dbc.Button(
 @app.callback(
     Output("load-dumped-data-signal", "data"),
     Output("subtitles-text-area", "children"),
+    Output("subtitle-store", "data"),
     Input("process-texts-button", "n_clicks"),
     State("video-file-dropdown", "value"),
     State({"type": "transcript-text", "name": ALL}, "value"),
     State({"type": "transcript-text", "name": ALL}, "title"),
     State("asr-model-dropdown", "value"),
 )
-def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_name):
-    assert all((isinstance(s,str) for s in texts))
+def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles, model_name):
+    assert all((isinstance(s, str) for s in texts))
     if n_clicks > 0:
         assert video_file is not None
         data = {
@@ -47,7 +50,7 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_nam
         )
 
         named_blocks = segment_transcript_to_subtitle_blocks(
-            get_letters_csv(video_file,model_name), list(data.values())
+            get_letters_csv(video_file, model_name), list(data.values())
         )
         subtitles = dbc.Row(
             [
@@ -90,8 +93,10 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_nam
             ],
             style={"width": "100%"},
         )
-        return "content-of-this-string-does-not-matter", [
-            subtitles
-        ]
+        return (
+            "content-of-this-string-does-not-matter",
+            [subtitles],
+            json.dumps([SubtitleBlock.from_dict_letters(dl) for dl in named_blocks]),
+        )
     else:
         raise PreventUpdate
