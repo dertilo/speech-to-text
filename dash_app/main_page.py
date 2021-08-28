@@ -100,7 +100,6 @@ page_content = [
     ),
     dbc.Row(
         [
-            html.H2("raw transcript"),
             dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
         ]
     ),

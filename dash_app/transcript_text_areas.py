@@ -88,11 +88,11 @@ def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     rtm = raw_transcript_name(asr_model)
     if n_clicks > 0 and rtm not in store_data:
         raw_transcript = create_raw_transcript(video_file, asr_model)
-        return [raw_transcript]
     elif rtm in store_data:
-        return [store_data[rtm].text]
+        raw_transcript = store_data[rtm].text
     else:
         raise PreventUpdate
+    return [html.H2("raw transcript"), raw_transcript]
 
 
 @app.callback(
