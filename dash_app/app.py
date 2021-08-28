@@ -1,12 +1,18 @@
 import json
 import os
 import sys
+from time import sleep
+
+sys.path.append(".")
+
 from pprint import pprint
 
 import dash_table
 from dash.exceptions import PreventUpdate
 
-sys.path.append(".")
+from speech_to_text.subtitle_creation import convert_to_wav_transcribe
+from speech_to_text.transcribe_audio import SpeechToText
+
 from pathlib import Path
 
 import dash
@@ -99,9 +105,7 @@ new_text_area_form = dbc.Form(
             ],
             className="mr-3",
         ),
-        dbc.Button(
-            "create new transcript", id="new-transcript-button"
-        ),
+        dbc.Button("create new transcript", id="new-transcript-button"),
     ],
     inline=True,
 )
@@ -118,7 +122,8 @@ page_content = [
             dbc.Col(html.Div(id="video-player-subs")),
         ]
     ),
-    html.H2("transcript alignment"),
+    dbc.Row([html.H2("raw transcript"), dbc.Spinner(html.Div(id="raw-transcript"))]),
+    dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
     dbc.Row(
         [
             dbc.Col(
@@ -141,7 +146,6 @@ page_content = [
             ),
         ]
     ),
-    # dbc.Row(dbc.Col(html.Div(" "))),
     dbc.Row(
         [
             dbc.Col(id="languages-text-areas"),
@@ -166,6 +170,35 @@ app.layout = html.Div(
         dcc.Store(id="load-dumped-data-signal"),
     ]
 )
+
+
+@app.callback(
+    Output("raw-transcript", "children"),
+    Input("video-file-dropdown", "value"),
+)
+def update_raw_transcript(video_file):
+    file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
+    raw_transcript_file = f"{SUBTITLES_DIR}/{file.stem}_raw_transcript.txt"
+    if not os.path.isfile(raw_transcript_file):
+        asr = SpeechToText(
+            model_name="jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
+        ).init()
+        transcript = convert_to_wav_transcribe(asr, str(file))
+        data_io.write_lines(
+            f"{SUBTITLES_DIR}/{file.stem}_letters.csv",
+            [f"{l.letter}\t{l.index}" for l in transcript.letters],
+        )
+
+        raw_transcript = "".join([l.letter for l in transcript.letters])
+        data_io.write_lines(
+            raw_transcript_file,
+            [raw_transcript],
+        )
+    else:
+        print("pretend processing")
+        sleep(5)
+        raw_transcript = list(data_io.read_lines(raw_transcript_file))[0]
+    return [raw_transcript]
 
 
 @app.callback(
