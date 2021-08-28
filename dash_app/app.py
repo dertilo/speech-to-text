@@ -87,7 +87,24 @@ video_selection_upload = dbc.Row(
         ),
     ]
 )
-NO_NAME = "type some name here"
+NO_NAME = "enter some name here"
+
+new_text_area_form = dbc.Form(
+    [
+        dbc.FormGroup(
+            [
+                dbc.Label("Name", className="mr-2"),
+                dbc.Input(type="name", id="new-transcript-name", placeholder=NO_NAME),
+            ],
+            className="mr-3",
+        ),
+        dbc.Button(
+            "create new transcript", id="new-transcript-button", color="primary"
+        ),
+    ],
+    inline=True,
+)
+
 page_content = [
     html.H2("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
@@ -129,22 +146,7 @@ page_content = [
             ),
         ],
     ),
-    dbc.Row(
-        dbc.Col(
-            [
-                dbc.Textarea(
-                    id="new-transcript-name",
-                    value=NO_NAME,
-                    style={"width": "20%", "height": 50},
-                ),
-                dbc.Button(
-                    "create new transcript",
-                    id="new-transcript-button",
-                    n_clicks=0,
-                ),
-            ]
-        )
-    ),
+    dbc.Row(new_text_area_form),
 ]
 app.layout = html.Div(
     [
@@ -206,11 +208,11 @@ def update_store_data(video_name, _):
     Input("new-transcript-button", "n_clicks"),
     State("new-transcript-name", "value"),
 )
-def update_text_areas(data_s: str, n_clicks, new_name):
-    data = json.loads(data_s) if data_s is not None else {}
-    print(data)
-    if new_name != NO_NAME:
-        data[new_name] = "enter text here"
+def update_text_areas(store_s: str, n_clicks, new_name):
+    store_data = json.loads(store_s) if store_s is not None else {}
+    print(store_data)
+    if new_name is not None and new_name != NO_NAME:
+        store_data[new_name] = "enter text here"
     return [
         dbc.Row(
             [
@@ -223,7 +225,7 @@ def update_text_areas(data_s: str, n_clicks, new_name):
                 ),
             ]
         )
-        for k, (name, text) in enumerate(data.items())
+        for k, (name, text) in enumerate(store_data.items())
     ]
 
 
