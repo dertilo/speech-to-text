@@ -111,25 +111,51 @@ def generate_block_start_ends(
     yield last_end, l.index
 
 
-def create_ass_file(named_blocks: List[Dict[str, List[LetterIdx]]], ass_file):
+@dataclass
+class SubtitleBlock:
+    start: int  # in ms
+    end: int  # in ms
+    name_texts: List[Tuple[str, str]]
+
+    @property
+    def names(self):
+        return [n for n, _ in self.name_texts]
+
+    @classmethod
+    def from_dict_letters(cls, dictletter: Dict[str, List[LetterIdx]]):
+        first_index = list(dictletter.values())[0][0].index
+        start = make_time(ms=round(1000 * first_index / TARGET_SAMPLE_RATE))
+        last_index = list(dictletter.values())[0][-1].index
+        end = make_time(ms=round(1000 * last_index / TARGET_SAMPLE_RATE))
+        return cls(
+            start,
+            end,
+            [
+                (name, "".join((l.letter for l in letters)))
+                for name, letters in dictletter.items()
+            ],
+        )
+
+
+def create_ass_file(subtitle_blocks: List[SubtitleBlock], ass_file):
     subs = SSAFile()
     colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
-    for k, name in enumerate(named_blocks[0].keys()):
+    for k, name in enumerate(subtitle_blocks[0].names):
         my_style = subs.styles["Default"].copy()
         my_style.primarycolor = colors[k]
         subs.styles[name] = my_style
 
-    for name2block in named_blocks:
+    for sb in subtitle_blocks:
         start, end = None, None
-        for name, block in name2block.items():
-            if len(block) > 0:
+        for name, text in sb.name_texts:
+            if len(text) > 0:
                 if start is None:
-                    start = create_timestamp(block[0].index)
-                    end = create_timestamp(block[-1].index)
+                    start = sb.start
+                    end = sb.end
                 sub_line = SSAEvent(
                     start=start,
                     end=end,
-                    text="".join((l.letter for l in block)),
+                    text=text,
                 )
                 sub_line.style = name
                 subs.append(sub_line)
