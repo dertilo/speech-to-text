@@ -6,6 +6,7 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Output, Input, State
+from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
@@ -56,37 +57,55 @@ def create_raw_transcript(video_file):
 
 @app.callback(
     Output("raw-transcript", "children"),
+    Input("create-raw-transcripts-button", "n_clicks"),
+    State("transcripts-store", "data"),
+    State("video-file-dropdown", "value"),
+)
+def calc_raw_transcript(n_clicks, store_s, video_file):
+    store_data = get_store_data(store_s)
+    if n_clicks > 0:
+        if "raw-transcript" not in store_data:
+            raw_transcript = create_raw_transcript(video_file)
+        else:
+            raw_transcript = store_data["raw-transcript"]
+
+        return [raw_transcript]
+    else:
+        raise PreventUpdate
+
+
+@app.callback(
     Output("languages-text-areas", "children"),
     Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
-    State("video-file-dropdown", "value"),
     State("new-transcript-name", "value"),
 )
-def update_text_areas(store_s: str, n_clicks, video_file, new_name):
-    store_data = json.loads(store_s) if store_s is not None else {}
-    store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
+def update_text_areas(store_s: str, n_clicks, new_name):
+    store_data = get_store_data(store_s)
     print(f"store-data: {[asdict(v) for v in store_data.values()]}")
-    if "raw-transcript" not in store_data:
-        raw_transcript = create_raw_transcript(video_file)
-        store_data["raw-transcript"] = TranslatedTranscript(
-            "raw-transcript", 0, raw_transcript
+    transcripts = list(store_data.values())
+    if new_name is not None and new_name != NO_NAME:
+        transcripts.append(
+            TranslatedTranscript("raw-transcript", len(transcripts), "enter text here")
         )
 
-    if new_name is not None and new_name != NO_NAME:
-        store_data[new_name] = TranslatedTranscript(
-            "raw-transcript", len(store_data.keys()), "enter text here"
-        )
     rows = []
-    for name, sd in sorted(store_data.items(), key=lambda x: x[1].order):
-        rows.append(dbc.Row(html.H5(name)))
+    for sd in sorted(transcripts, key=lambda x: x.order):
+        rows.append(dbc.Row(html.H5(sd.name)))
         rows.append(
             dbc.Row(
                 dbc.Textarea(
-                    title=name,
-                    id={"type": "transcript-text", "name": name},
+                    title=sd.name,
+                    id={"type": "transcript-text", "name": sd.name},
                     value=sd.text,
                     style={"width": "90%", "height": 200, "fontSize": 11},
                 )
             )
         )
-    return [store_data["raw-transcript"].text], rows
+    return rows
+
+
+def get_store_data(store_s):
+    store_data = json.loads(store_s) if store_s is not None else {}
+    store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
+    return store_data

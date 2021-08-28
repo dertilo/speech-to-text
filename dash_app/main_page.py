@@ -67,6 +67,26 @@ page_content = [
             dbc.Col(html.Div(id="video-player-subs")),
         ]
     ),
+    dbc.Row([
+        dbc.Col(
+            dbc.Button(
+                "transcribe",
+                id="create-raw-transcripts-button",
+                n_clicks=0,
+                color="primary",
+            ),
+            style={"width": "100%"},
+        ),
+        dbc.Col(
+            dbc.Button(
+                "burn into video",
+                id="process-video-button",
+                n_clicks=0,
+                color="primary",
+            ),
+            style={"width": "100%"},
+        )
+    ]),
     dbc.Row(
         [
             html.H2("raw transcript"),
@@ -74,23 +94,7 @@ page_content = [
         ]
     ),
     dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
-    dbc.Row(
-        [
-            dbc.Col(
-                process_button,
-                style={"width": "100%"},
-            ),
-            dbc.Col(
-                dbc.Button(
-                    "burn into video",
-                    id="process-video-button",
-                    n_clicks=0,
-                    color="primary",
-                ),
-                style={"width": "100%"},
-            ),
-        ]
-    ),
+    dbc.Row(dbc.Col(process_button, width={"size": 6, "offset": 4})),
     dbc.Row(id="subtitles-text-area", style={"padding-top": 20}),
     dbc.Row(dbc.Col(id="languages-text-areas"), style={"padding-top": 20}),
     dbc.Row(
