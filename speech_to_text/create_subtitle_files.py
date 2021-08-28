@@ -63,7 +63,8 @@ def cut_block_out_of_transcript(
     def tokenize_letters(lettas: List[LetterIdx]):
         buffer = []
         for l in lettas:
-            buffer.append(l)
+            if l.letter != FORCE_BREAK:
+                buffer.append(l)
             if l.letter == " ":
                 yield buffer
                 buffer = []
@@ -81,6 +82,9 @@ def cut_block_out_of_transcript(
     return name2block
 
 
+FORCE_BREAK = "|"
+
+
 def generate_block_start_ends(
     letters: List[LetterIdx],
 ) -> Generator[int, None, None]:
@@ -92,12 +96,15 @@ def generate_block_start_ends(
     last_end = 0
     for k, l in enumerate(letters):
         block_len += 1
-        if l.letter == " ":
+        force_break = l.letter == FORCE_BREAK
+        if force_break:
+            print(f"DEBUG: foreced break after: {l.letter}")
+        if l.letter == " " or force_break:
             next_one = min(
                 k + 2, len(letters)
             )  # next token might start with vocal, heuristic to get at "real" start of token
             is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
-            if is_pause and block_len > 10 or block_len > 50:
+            if (is_pause and block_len > 10 or block_len > 50) or force_break:
                 yield last_end, l.index
                 last_end = l.index + 10
                 block_len = 0
@@ -171,12 +178,15 @@ def segment_transcript_to_subtitle_blocks(
 
     subtitles = []
     letters = raw_letters
-    for tt in sorted(translated_transcript,key=lambda x: x.order):
-        letters = incorporate_corrections(tt.text, letters)
-        subtitles.append((tt.name, letters))
+    for tt in sorted(translated_transcript, key=lambda x: x.order):
+        aligned_letters = temporal_align_text_to_letters(tt.text, letters)
+        subtitles.append((tt.name, aligned_letters))
+        letters = aligned_letters  # align next transcript on already aligned, heuristic is to use language-similarities: native->spanish->english->german
+
+    _, first_aligned = subtitles[0]
     named_blocks = [
         cut_block_out_of_transcript(subtitles, s, e)
-        for s, e in generate_block_start_ends(raw_letters)
+        for s, e in generate_block_start_ends(first_aligned)
     ]
     return named_blocks
 
@@ -191,7 +201,7 @@ def regex_tokenizer(
     return [(m.start(), m.end(), m.group()) for m in re.finditer(pattern, text)]
 
 
-def incorporate_corrections(
+def temporal_align_text_to_letters(
     corrected_transcript: str,
     raw_letters: List[LetterIdx],
 ):
@@ -207,10 +217,12 @@ def incorporate_corrections(
     raw_transcript = "".join([l.letter for l in raw_letters])
     # raw_transcript = add_start_end(raw_transcript)
     corrected_transcript = add_start_end(corrected_transcript)
+    corrected_transcript = re.sub(r"\n+", f" {FORCE_BREAK} ", corrected_transcript)
     # sm.set_seqs(raw_transcript, corrected_transcript)
     # matches = [m for m in sm.get_matching_blocks() if m.size > 0]
     tokens_a = regex_tokenizer(raw_transcript)
     tokens_b = regex_tokenizer(corrected_transcript)
+    # print(f"tokenized translated-transcript: {' '.join(x for _,_,x in tokens_b)}")
     tok2letter_idx_a = {k: start_idx for k, (start_idx, _, _) in enumerate(tokens_a)}
     tok2letter_idx_a[len(tokens_a)] = len(raw_transcript) + 1
     tok2letter_idx_b = {k: start_idx for k, (start_idx, _, _) in enumerate(tokens_b)}
@@ -220,16 +232,7 @@ def incorporate_corrections(
         [t.lower() for _, _, t in tokens_a], [t.lower() for _, _, t in tokens_b]
     )
     matches = [al for al in alignments if al.ref == al.hyp]
-    bold_text = raw_transcript
-    for al in sorted(matches, key=lambda m: -m.refi_from):
-        start_idx = tok2letter_idx_a[al.refi_from]
-        size = tok2letter_idx_a[al.refi_to] - tok2letter_idx_a[al.refi_from]
-        bold_text = (
-            bold_text[:start_idx]
-            + f"\033[1m{bold_text[start_idx:(start_idx+size)]}\033[0m"
-            + bold_text[start_idx + size :]
-        )
-    print(bold_text)
+    print_for_debug(matches, raw_transcript, tok2letter_idx_a)
 
     raw_letters += [raw_letters[-1]]
     matched2index = {
@@ -249,6 +252,19 @@ def incorporate_corrections(
         (letters[k].index >= letters[k - 1].index for k in range(1, len(letters)))
     )
     return letters[len(START) : -len(END)]
+
+
+def print_for_debug(matches, raw_transcript, tok2letter_idx_a):
+    bold_text = raw_transcript
+    for al in sorted(matches, key=lambda m: -m.refi_from):
+        start_idx = tok2letter_idx_a[al.refi_from]
+        size = tok2letter_idx_a[al.refi_to] - tok2letter_idx_a[al.refi_from]
+        bold_text = (
+            bold_text[:start_idx]
+            + f"\033[1m{bold_text[start_idx:(start_idx + size)]}\033[0m"
+            + bold_text[start_idx + size :]
+        )
+    print(bold_text)
 
 
 if __name__ == "__main__":
