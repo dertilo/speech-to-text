@@ -78,12 +78,14 @@ def calc_raw_transcript(
 ):
     store_data = get_store_data(store_s)
     rtm = "raw-transcript"
-    # assert rtm in store_data,store_data
+    assert rtm in store_data,store_data
     if n_clicks > 0 and rtm not in store_data:
         raw_transcript = create_raw_transcript(video_file, asr_model)
     elif rtm in store_data and current_raw_transcript != store_data[rtm].text:
         raw_transcript = store_data[rtm].text
     else:
+        print(f"DEBUG: not updating raw_transcript")
+        print(f"current_raw_transcript:{current_raw_transcript}")
         raise PreventUpdate
     return raw_transcript
     # html.H2("raw transcript"),
@@ -124,6 +126,7 @@ def update_text_areas(store_s: str, n_clicks, raw_transcript, new_name, asr_mode
     elif raw_transcript is not None:
         transcripts = [TranslatedTranscript("raw-transcript", 0, raw_transcript)]
     else:
+        print(f"DEBUG: not updating text_areas")
         raise PreventUpdate
 
     if new_name is not None and new_name != NO_NAME:

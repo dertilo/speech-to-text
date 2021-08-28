@@ -16,27 +16,23 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 
 
-radios_input = dbc.FormGroup(
+burn_into_video_form = dbc.Row(
     [
-        dbc.Label("Choose transcripts", html_for="example-radios-row", width=2),
         dbc.Col(
-            dcc.Checklist(
-                id="transcripts-radio-selection",
-            ),
-            width=50,
+            [
+                html.H5("Choose transcripts"),
+                dcc.Checklist(
+                    id="transcripts-radio-selection",
+                ),
+            ]
         ),
-    ],
-    row=True,
-)
-
-burn_into_video_form = dbc.Form(
-    [
-        radios_input,
-        dbc.Button(
-            "burn into video",
-            id="burn-into-video-button",
-            n_clicks=0,
-            color="primary",
+        dbc.Col(
+            dbc.Button(
+                "burn into video",
+                id="burn-into-video-button",
+                n_clicks=0,
+                color="primary",
+            )
         ),
     ]
 )
@@ -65,7 +61,7 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
         raise PreventUpdate
 
     video_file = Path(f"{APP_DATA_DIR}/{video_file_name}")
-    video_subs_file_name = f"{video_file_name}_subs.mp4"
+    video_subs_file_name = f"{Path(video_file_name).stem}_subs.mp4"
 
     def select(sb: SubtitleBlock, selection):
         sb.name_texts = [(n, t) for n, t in sb.name_texts if n in selection]
@@ -78,7 +74,7 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
     with NamedTemporaryFile(suffix=".ass") as f:
         create_ass_file(subtitle_blocks, f.name)
         subprocess.check_output(
-            f"/usr/bin/ffmpeg -i '{video_file}' -vf ass={f.name} '{APP_DATA_DIR}/{video_subs_file_name}' -y",
+            f"/usr/bin/ffmpeg -y -i '{video_file}' -vf ass={f.name} '{APP_DATA_DIR}/{video_subs_file_name}'",
             shell=True,
         )
     return [

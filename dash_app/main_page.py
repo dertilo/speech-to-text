@@ -93,7 +93,7 @@ page_content = [
         ]
     ),
     dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
-    html.Div(id="dependent_on_raw_transcript")
+    html.Div(id="dependent_on_raw_transcript"),
 ]
 
 
@@ -102,14 +102,14 @@ page_content = [
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
     State("asr-model-dropdown", "value"),
-
 )
-def update_store_data(video_file, _,model_name):
-    if os.path.isfile(build_json_name(video_file,model_name)):
-        return json.dumps(
-            data_io.read_json(build_json_name(video_file,model_name))
-        )
+def update_store_data(video_file, _, model_name):
+    if os.path.isfile(build_json_name(video_file, model_name)):
+        return json.dumps(data_io.read_json(build_json_name(video_file, model_name)))
     else:
+        print(
+            f"DEBUG: did not find store_data: {build_json_name(video_file,model_name)} is not existing"
+        )
         raise PreventUpdate
 
 
@@ -124,7 +124,11 @@ def update_video_file_dropdown(contents, names, dates):
     if contents is not None:
         for name, data, date in zip(names, contents, dates):
             save_file(name, data, date)
-    options = [{"label": Path(f).stem, "value": f} for f in uploaded_files()]
+    options = [
+        {"label": Path(f).stem, "value": f}
+        for f in uploaded_files()
+        if not f.endswith("_subs.mp4")
+    ]
     return options, options[0]["value"] if len(options) > 0 else None
 
 
