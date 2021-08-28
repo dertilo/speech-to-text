@@ -1,8 +1,6 @@
-import json
 import os
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -11,16 +9,14 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
+from dash_app.common import get_letters_csv, raw_transcript_name, get_store_data
+from dash_app.subtitles_table import process_button
 from dash_app.updownload_app import UPLOAD_DIRECTORY, SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import TranslatedTranscript
 from speech_to_text.subtitle_creation import convert_to_wav_transcribe
 from speech_to_text.transcribe_audio import SpeechToText
 
 NO_NAME = "enter some name here"
-LANGUAGE_TO_MODELNAME = {
-    "spanish": "jonatasgrosman/wav2vec2-large-xlsr-53-spanish",
-    "english": "jonatasgrosman/wav2vec2-large-xlsr-53-english",
-}
 
 new_text_area_form = dbc.Form(
     [
@@ -35,11 +31,6 @@ new_text_area_form = dbc.Form(
     ],
     inline=True,
 )
-
-
-def get_letters_csv(video_file, model_name):
-    file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
-    return f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}_letters.csv"
 
 
 def create_raw_transcript(video_file, model_name):
@@ -67,15 +58,6 @@ def create_raw_transcript(video_file, model_name):
     return raw_transcript
 
 
-def raw_transcript_name(asr_model_name):
-    return (
-        f"raw-transcript-{asr_model_name}".replace(" ", "")
-        .replace("-", "")
-        .replace("/", "_")
-        .replace(".", "")
-    )
-
-
 @app.callback(
     Output("raw-transcript", "children"),
     Input("create-raw-transcripts-button", "n_clicks"),
@@ -92,7 +74,18 @@ def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
         raw_transcript = store_data[rtm].text
     else:
         raise PreventUpdate
-    return [html.H2("raw transcript"), raw_transcript]
+    return [
+        html.H2("raw transcript"),
+        raw_transcript,
+        dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
+        dbc.Row(dbc.Col(process_button, width={"size": 6, "offset": 4})),
+        dbc.Row(id="subtitles-text-area", style={"padding-top": 20}),
+        dbc.Row(dbc.Col(id="languages-text-areas"), style={"padding-top": 20}),
+        dbc.Row(
+            new_text_area_form,
+            style={"padding-top": 20},
+        ),
+    ]
 
 
 @app.callback(
@@ -133,9 +126,3 @@ def update_text_areas(store_s: str, n_clicks, raw_transcript, new_name, asr_mode
             )
         )
     return rows
-
-
-def get_store_data(store_s) -> Dict[str, TranslatedTranscript]:
-    store_data = json.loads(store_s) if store_s is not None else {}
-    store_data = {name: TranslatedTranscript(**d) for name, d in store_data.items()}
-    return store_data

@@ -12,9 +12,8 @@ from util import data_io
 from dash_app.app import app
 from dash_app.subtitle_video_creation import burn_into_video_form
 from dash_app.subtitles_table import process_button, build_json_name
-from dash_app.transcript_text_areas import new_text_area_form, LANGUAGE_TO_MODELNAME
+from dash_app.common import LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import (
-    SUBTITLES_DIR,
     save_file,
     uploaded_files,
     UPLOAD_DIRECTORY,
@@ -98,19 +97,7 @@ page_content = [
             ),
         ]
     ),
-    dbc.Row(
-        [
-            dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
-        ]
-    ),
-    dbc.Row(html.H2("transcript alignment"), style={"padding-top": 20}),
-    dbc.Row(dbc.Col(process_button, width={"size": 6, "offset": 4})),
-    dbc.Row(id="subtitles-text-area", style={"padding-top": 20}),
-    dbc.Row(dbc.Col(id="languages-text-areas"), style={"padding-top": 20}),
-    dbc.Row(
-        new_text_area_form,
-        style={"padding-top": 20},
-    ),
+    dbc.Spinner(html.Div(id="raw-transcript", style={"fontSize": 10})),
 ]
 
 

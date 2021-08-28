@@ -10,7 +10,7 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
-from dash_app.transcript_text_areas import get_letters_csv, raw_transcript_name
+from dash_app.common import get_letters_csv, raw_transcript_name
 from dash_app.updownload_app import SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import (
     TranslatedTranscript,

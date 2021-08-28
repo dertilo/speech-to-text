@@ -1,7 +1,7 @@
 from dash.dependencies import Input, Output, State
 
 from dash_app.app import app
-from dash_app.transcript_text_areas import get_store_data
+from dash_app.common import get_store_data
 from speech_to_text.create_subtitle_files import create_ass_file
 import dash_bootstrap_components as dbc
 
@@ -41,6 +41,16 @@ def update_radio_selection(store_s):
 
     options = [{"label": name, "value": name} for name in store_data.keys()]
     return options
+
+# @app.callback(
+#     Output("transcripts-radio-selection", "options"),
+#     Input("burn-into-video-button", "n_clicks"),
+# )
+# def burn_into_video_button(store_s):
+#     store_data = get_store_data(store_s)
+#
+#     options = [{"label": name, "value": name} for name in store_data.keys()]
+#     return options
 
 
 # create_ass_file()
