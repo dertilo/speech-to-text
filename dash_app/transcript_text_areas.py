@@ -60,6 +60,10 @@ def create_raw_transcript(video_file, model_name):
     return raw_transcript
 
 
+def raw_transcript_name(asr_model_name):
+    return f"raw-transcript-{asr_model_name}"
+
+
 @app.callback(
     Output("raw-transcript", "children"),
     Input("create-raw-transcripts-button", "n_clicks"),
@@ -69,13 +73,12 @@ def create_raw_transcript(video_file, model_name):
 )
 def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     store_data = get_store_data(store_s)
-    if n_clicks > 0 and "raw-transcript" not in store_data:
-        raw_transcript = create_raw_transcript(
-            video_file, LANGUAGE_TO_MODELNAME[asr_model]
-        )
+    rtm = raw_transcript_name(asr_model)
+    if n_clicks > 0 and rtm not in store_data:
+        raw_transcript = create_raw_transcript(video_file, asr_model)
         return [raw_transcript]
-    elif "raw-transcript" in store_data:
-        return [store_data["raw-transcript"].text]
+    elif rtm in store_data:
+        return [store_data[rtm].text]
     else:
         raise PreventUpdate
 
@@ -85,14 +88,17 @@ def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
     State("new-transcript-name", "value"),
+    State("asr-model-dropdown", "value"),
 )
-def update_text_areas(store_s: str, n_clicks, new_name):
+def update_text_areas(store_s: str, n_clicks, new_name, asr_model):
     store_data = get_store_data(store_s)
     print(f"store-data: {[asdict(v) for v in store_data.values()]}")
     transcripts = list(store_data.values())
     if new_name is not None and new_name != NO_NAME:
         transcripts.append(
-            TranslatedTranscript("raw-transcript", len(transcripts), "enter text here")
+            TranslatedTranscript(
+                raw_transcript_name(asr_model), len(transcripts), "enter text here"
+            )
         )
 
     rows = []
