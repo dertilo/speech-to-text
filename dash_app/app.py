@@ -3,6 +3,7 @@ import os
 import sys
 from pprint import pprint
 
+import dash_table
 from dash.exceptions import PreventUpdate
 
 sys.path.append(".")
@@ -99,14 +100,14 @@ new_text_area_form = dbc.Form(
             className="mr-3",
         ),
         dbc.Button(
-            "create new transcript", id="new-transcript-button", color="primary"
+            "create new transcript", id="new-transcript-button"
         ),
     ],
     inline=True,
 )
 
 page_content = [
-    html.H2("subtitles creator"),
+    html.H1("subtitles creator"),
     html.H5("select video-file in dropdown, if not there upload it!"),
     video_selection_upload,
     dbc.Row(
@@ -117,6 +118,7 @@ page_content = [
             dbc.Col(html.Div(id="video-player-subs")),
         ]
     ),
+    html.H2("transcript alignment"),
     dbc.Row(
         [
             dbc.Col(
@@ -124,6 +126,7 @@ page_content = [
                     "create subtitles",
                     id="process-texts-button",
                     n_clicks=0,
+                    color="primary",
                 ),
                 style={"width": "100%"},
             ),
@@ -132,11 +135,13 @@ page_content = [
                     "burn into video",
                     id="process-video-button",
                     n_clicks=0,
+                    color="primary",
                 ),
                 style={"width": "100%"},
             ),
         ]
     ),
+    # dbc.Row(dbc.Col(html.Div(" "))),
     dbc.Row(
         [
             dbc.Col(id="languages-text-areas"),
@@ -145,8 +150,12 @@ page_content = [
                 style={"width": "100%"},
             ),
         ],
+        style={"padding-top": 20},
     ),
-    dbc.Row(new_text_area_form),
+    dbc.Row(
+        new_text_area_form,
+        style={"padding-top": 20},
+    ),
 ]
 app.layout = html.Div(
     [
@@ -176,10 +185,10 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
         subtitles = dbc.Row(
             [
                 html.H5("subtitles"),
-                dbc.Textarea(
-                    id="subtitles",
-                    value="\n".join([text for name, text in data.items()]),
-                    style={"width": "90%", "height": 200 * len(data)},
+                dash_table.DataTable(
+                    columns=[{"id": cn, "name": cn} for cn in ["start-time"] + titles],
+                    data=[dict({t: i for t in titles}) for i in range(0, 100)],
+                    style_table={"height": 500, "overflowY": "scroll", "width": 400},
                 ),
             ]
         )
