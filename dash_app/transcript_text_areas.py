@@ -39,14 +39,16 @@ new_text_area_form = dbc.Form(
 
 def create_raw_transcript(video_file, model_name):
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
-    raw_transcript_file = f"{SUBTITLES_DIR}/{file.stem}_raw_transcript.txt"
+    raw_transcript_file = (
+        f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}.txt"
+    )
     if not os.path.isfile(raw_transcript_file):
         asr = SpeechToText(
             model_name=model_name,
         ).init()
         transcript = convert_to_wav_transcribe(asr, str(file))
         data_io.write_lines(
-            f"{SUBTITLES_DIR}/{file.stem}_letters.csv",
+            f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}_letters.csv",
             [f"{l.letter}\t{l.index}" for l in transcript.letters],
         )
 
@@ -61,7 +63,11 @@ def create_raw_transcript(video_file, model_name):
 
 
 def raw_transcript_name(asr_model_name):
-    return f"raw-transcript-{asr_model_name}"
+    return (
+        f"raw-transcript-{asr_model_name}".replace(" ", "")
+        .replace("-", "")
+        .replace(".", "")
+    )
 
 
 @app.callback(
