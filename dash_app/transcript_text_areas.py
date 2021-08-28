@@ -76,18 +76,17 @@ def update_text_areas(store_s: str, n_clicks, video_file, new_name):
         store_data[new_name] = TranslatedTranscript(
             "raw-transcript", len(store_data.keys()), "enter text here"
         )
-
-    return [store_data["raw-transcript"].text], [
-        dbc.Row(
-            [
-                html.H5(name),
+    rows = []
+    for name, sd in sorted(store_data.items(), key=lambda x: x[1].order):
+        rows.append(dbc.Row(html.H5(name)))
+        rows.append(
+            dbc.Row(
                 dbc.Textarea(
                     title=name,
                     id={"type": "transcript-text", "name": name},
                     value=sd.text,
                     style={"width": "90%", "height": 200, "fontSize": 11},
-                ),
-            ]
+                )
+            )
         )
-        for name, sd in sorted(store_data.items(), key=lambda x: x[1].order)
-    ]
+    return [store_data["raw-transcript"].text], rows

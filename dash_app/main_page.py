@@ -91,20 +91,12 @@ page_content = [
             ),
         ]
     ),
-    dbc.Row(
-        [
-            dbc.Col(id="languages-text-areas"),
-            dbc.Col(
-                id="subtitles-text-area",
-                style={"width": "100%"},
-            ),
-        ],
-        style={"padding-top": 20},
-    ),
+    dbc.Row(dbc.Col(id="languages-text-areas"), style={"padding-top": 20}),
     dbc.Row(
         new_text_area_form,
         style={"padding-top": 20},
     ),
+    dbc.Row(id="subtitles-text-area", style={"padding-top": 20}),
 ]
 
 

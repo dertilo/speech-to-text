@@ -86,7 +86,8 @@ def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
                         "height": "auto",
                     },
                 ),
-            ],style={"width": "100%"}
+            ],
+            style={"width": "100%"},
         )
         return "content-of-this-string-does-not-matter", [
             html.H5("segmentation"),
