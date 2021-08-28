@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
+from dash_app.transcript_text_areas import get_letters_csv, raw_transcript_name
 from dash_app.updownload_app import SUBTITLES_DIR
 from speech_to_text.create_subtitle_files import (
     TranslatedTranscript,
@@ -24,6 +25,8 @@ process_button = dbc.Button(
     color="primary",
 )
 
+def build_json_name(video_file,model_name):
+    return f"{SUBTITLES_DIR}/{Path(video_file).stem}_{raw_transcript_name(model_name)}.json"
 
 @app.callback(
     Output("load-dumped-data-signal", "data"),
@@ -32,21 +35,22 @@ process_button = dbc.Button(
     State("video-file-dropdown", "value"),
     State({"type": "transcript-text", "name": ALL}, "value"),
     State({"type": "transcript-text", "name": ALL}, "title"),
+    State("asr-model-dropdown", "value"),
 )
-def dump_to_disk_process_subtitles(n_clicks, video_name, texts, titles):
+def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles,model_name):
     if n_clicks > 0:
-        assert video_name is not None
+        assert video_file is not None
         data = {
             title: TranslatedTranscript(title, k, text)
             for k, (title, text) in enumerate(zip(titles, texts))
         }
         data_io.write_json(
-            f"{SUBTITLES_DIR}/{Path(video_name).stem}.json",
+            build_json_name(video_file,model_name),
             {name: asdict(v) for name, v in data.items()},
         )
 
         named_blocks = segment_transcript_to_subtitle_blocks(
-            f"{SUBTITLES_DIR}/{Path(video_name).stem}_letters.csv", list(data.values())
+            get_letters_csv(video_file,model_name), list(data.values())
         )
         subtitles = dbc.Row(
             [

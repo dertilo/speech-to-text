@@ -37,6 +37,11 @@ new_text_area_form = dbc.Form(
 )
 
 
+def get_letters_csv(video_file, model_name):
+    file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
+    return f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}_letters.csv"
+
+
 def create_raw_transcript(video_file, model_name):
     file = Path(f"{UPLOAD_DIRECTORY}/{video_file}")
     raw_transcript_file = (
@@ -48,7 +53,7 @@ def create_raw_transcript(video_file, model_name):
         ).init()
         transcript = convert_to_wav_transcribe(asr, str(file))
         data_io.write_lines(
-            f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}_letters.csv",
+            get_letters_csv(video_file, model_name),
             [f"{l.letter}\t{l.index}" for l in transcript.letters],
         )
 
@@ -94,18 +99,24 @@ def calc_raw_transcript(n_clicks, store_s, video_file, asr_model):
     Output("languages-text-areas", "children"),
     Input("transcripts-store", "data"),
     Input("new-transcript-button", "n_clicks"),
+    Input("raw-transcript", "children"),
     State("new-transcript-name", "value"),
     State("asr-model-dropdown", "value"),
 )
-def update_text_areas(store_s: str, n_clicks, new_name, asr_model):
+def update_text_areas(store_s: str, n_clicks, raw_transcript, new_name, asr_model):
     store_data = get_store_data(store_s)
     print(f"store-data: {[asdict(v) for v in store_data.values()]}")
-    transcripts = list(store_data.values())
+
+    if raw_transcript_name(asr_model) in store_data.keys():
+        transcripts = list(store_data.values())
+    elif raw_transcript is not None:
+        transcripts = [TranslatedTranscript("raw-transcript", 0, raw_transcript)]
+    else:
+        raise PreventUpdate
+
     if new_name is not None and new_name != NO_NAME:
         transcripts.append(
-            TranslatedTranscript(
-                raw_transcript_name(asr_model), len(transcripts), "enter text here"
-            )
+            TranslatedTranscript(new_name, len(transcripts), "enter text here")
         )
 
     rows = []

@@ -11,7 +11,7 @@ from util import data_io
 
 from dash_app.app import app
 from dash_app.subtitle_video_creation import burn_into_video_form
-from dash_app.subtitles_table import process_button
+from dash_app.subtitles_table import process_button, build_json_name
 from dash_app.transcript_text_areas import new_text_area_form, LANGUAGE_TO_MODELNAME
 from dash_app.updownload_app import (
     SUBTITLES_DIR,
@@ -119,15 +119,15 @@ page_content = [
     Output("transcripts-store", "data"),
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
+    State("asr-model-dropdown", "value"),
+
 )
-def update_store_data(video_name, _):
-    if os.path.isfile(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json"):
-        print("update_store_data")
+def update_store_data(video_file, _,model_name):
+    if os.path.isfile(build_json_name(video_file,model_name)):
         return json.dumps(
-            data_io.read_json(f"{SUBTITLES_DIR}/{Path(video_name).stem}.json")
+            data_io.read_json(build_json_name(video_file,model_name))
         )
     else:
-        print(f"not updated update_store_data")
         raise PreventUpdate
 
 
