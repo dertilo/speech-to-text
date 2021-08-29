@@ -81,7 +81,7 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
         create_ass_file(
             subtitle_blocks,
             f.name,
-            styles={name: StyleConfig(fontsize=20.0) for name in selection},
+            styles={name: StyleConfig(fontsize=10.0) for name in selection},
         )
         subprocess.check_output(
             f"/usr/bin/ffmpeg -y -i '{video_file}' -vf ass={f.name} '{APP_DATA_DIR}/{video_subs_file_name}'",

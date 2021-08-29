@@ -118,7 +118,7 @@ page_content = [
     Output("transcripts-store", "data"),
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
-    State("asr-model-dropdown", "value"), # TODO: stuff this in some store!?
+    Input("asr-model-dropdown", "value"), # TODO: stuff this in some store!?
 )
 def update_store_data(video_file, _, model_name):
     print(f"DEBUG: update_store_data with video_file={video_file}")

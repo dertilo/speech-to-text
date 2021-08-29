@@ -40,7 +40,7 @@ new_text_area_form = dbc.Form(
 )
 
 
-def create_raw_transcript(video_file, model_name) -> str:
+def create_or_load_raw_transcript(video_file, model_name) -> str:
     file = Path(f"{APP_DATA_DIR}/{video_file}")
     raw_transcript_file = (
         f"{SUBTITLES_DIR}/{file.stem}_{raw_transcript_name(model_name)}.txt"
@@ -68,24 +68,17 @@ def create_raw_transcript(video_file, model_name) -> str:
 @app.callback(
     Output("raw-transcript", "children"),
     Input("create-raw-transcripts-button", "n_clicks"),
-    Input("transcripts-store", "data"),
     State("video-file-dropdown", "value"),
     State("asr-model-dropdown", "value"),
-    State("raw-transcript", "children"),
 )
 def calc_raw_transcript(
-    n_clicks, store_s, video_file, asr_model, current_raw_transcript
+    n_clicks, video_file, asr_model
 ):
-    store_data = get_store_data(store_s)
-    rtm = "spoken"
 
-    if n_clicks > 0 and rtm not in store_data:
-        raw_transcript = create_raw_transcript(video_file, asr_model)
-    elif rtm in store_data and current_raw_transcript != store_data[rtm].text:
-        raw_transcript = store_data[rtm].text
+    if n_clicks > 0:
+        raw_transcript = create_or_load_raw_transcript(video_file, asr_model)
     else:
         print(f"DEBUG: not updating raw_transcript")
-        print(f"current_raw_transcript:{current_raw_transcript}")
         raise PreventUpdate
     return raw_transcript
     # html.H2("raw transcript"),
