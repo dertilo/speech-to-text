@@ -16,37 +16,37 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 
 
-burn_into_video_form = dbc.Row(
-    [
-        dbc.Col(
-            [
-                html.H5("Choose transcripts"),
-                dcc.Checklist(
-                    id="transcripts-radio-selection",
-                ),
-            ]
-        ),
-        dbc.Col(
-            dbc.Button(
-                "burn into video",
-                id="burn-into-video-button",
-                n_clicks=0,
-                color="primary",
-            )
-        ),
-    ]
-)
-
-
 @app.callback(
-    Output("transcripts-radio-selection", "options"),
+    Output("burn_into_video_form", "options"),
     Input("transcripts-store", "data"),
 )
 def update_radio_selection(store_s):
     store_data = get_store_data(store_s)
 
     options = [{"label": name, "value": name} for name in store_data.keys()]
-    return options
+    burn_into_video_form = dbc.Row(
+        [
+            dbc.Col(
+                [
+                    html.H5("Choose transcripts"),
+                    dcc.Checklist(
+                        id="transcripts-radio-selection",
+                        options=options
+                    ),
+                ]
+            ),
+            dbc.Col(
+                dbc.Button(
+                    "burn into video",
+                    id="burn-into-video-button",
+                    n_clicks=0,
+                    color="primary",
+                )
+            ),
+        ]
+    )
+
+    return burn_into_video_form
 
 
 @app.callback(

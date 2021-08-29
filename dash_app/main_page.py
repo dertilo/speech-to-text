@@ -10,7 +10,6 @@ from dash.exceptions import PreventUpdate
 from util import data_io
 
 from dash_app.app import app
-from dash_app.subtitle_video_creation import burn_into_video_form
 from dash_app.common import LANGUAGE_TO_MODELNAME, build_json_name
 from dash_app.transcript_text_areas import transcribe_button
 from dash_app.updownload_app import (
@@ -87,7 +86,7 @@ page_content = [
                 style={"width": "100%", "padding-top": 40},
             ),
             dbc.Col(
-                burn_into_video_form,
+                html.Div(id="burn_into_video_form"),
                 style={"width": "100%"},
             ),
         ]
@@ -96,12 +95,29 @@ page_content = [
     html.Div(id="dependent_on_raw_transcript"),
 ]
 
+# @app.callback(
+#     Output("language_dropdown", "children"),
+#     Input("video-file-dropdown", "value"),
+# )
+# def update_language_dropdown(video_file):
+#     language_dropdown = [
+#         html.Label("language"),
+#         dcc.Dropdown(
+#             id="asr-model-dropdown",
+#             options=[
+#                 {"label": k, "value": v}
+#                 for k, v in LANGUAGE_TO_MODELNAME.items()
+#             ],
+#             value=LANGUAGE_TO_MODELNAME["spanish"],
+#         ),
+#     ]
+#     return language_dropdown
 
 @app.callback(
     Output("transcripts-store", "data"),
     Input("video-file-dropdown", "value"),
     Input("load-dumped-data-signal", "data"),
-    State("asr-model-dropdown", "value"),
+    State("asr-model-dropdown", "value"), # TODO: stuff this in some store!?
 )
 def update_store_data(video_file, _, model_name):
 
@@ -135,14 +151,17 @@ def update_video_file_dropdown(contents, names, dates):
     Input("video-file-dropdown", "value"),
 )
 def update_video_player(file):
-    fullfile = f"{APP_DATA_DIR}/{file}"
-    return [
-        html.H5(f"{Path(fullfile).name}"),
-        html.Video(
-            controls=True,
-            id="movie_player",
-            src=f"/files/{file}",
-            autoPlay=False,
-            style={"width": "100%"},
-        ),
-    ]
+    if file is not None:
+        fullfile = f"{APP_DATA_DIR}/{file}"
+        return [
+            html.H5(f"{Path(fullfile).name}"),
+            html.Video(
+                controls=True,
+                id="movie_player",
+                src=f"/files/{file}",
+                autoPlay=False,
+                style={"width": "100%"},
+            ),
+        ]
+    else:
+        raise PreventUpdate
