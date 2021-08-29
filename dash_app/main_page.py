@@ -11,6 +11,7 @@ from util import data_io
 
 from dash_app.app import app
 from dash_app.common import LANGUAGE_TO_MODELNAME, build_json_name
+from dash_app.subtitle_video_creation import burn_video_div
 from dash_app.transcript_text_areas import transcribe_button
 from dash_app.updownload_app import (
     save_file,
@@ -86,7 +87,7 @@ page_content = [
                 style={"width": "100%", "padding-top": 40},
             ),
             dbc.Col(
-                html.Div(id="burn_into_video_form"),
+                burn_video_div,
                 style={"width": "100%"},
             ),
         ]

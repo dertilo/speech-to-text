@@ -10,17 +10,20 @@ from dash.exceptions import PreventUpdate
 
 from dash_app.app import app
 from dash_app.common import get_store_data
-from dash_app.updownload_app import APP_DATA_DIR
+from dash_app.updownload_app import APP_DATA_DIR, file_download_link
 from speech_to_text.create_subtitle_files import create_ass_file, SubtitleBlock
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
+from urllib.parse import quote as urlquote
 
+burn_video_div = html.Div(id="burn_into_video_form")
 
 @app.callback(
-    Output("burn_into_video_form", "options"),
-    Input("transcripts-store", "data"),
+    Output("burn_into_video_form", "children"),
+    Input("load-dumped-data-signal", "data"),
+    State("transcripts-store", "data"),
 )
-def update_radio_selection(store_s):
+def update_radio_selection(_,store_s):
     store_data = get_store_data(store_s)
 
     options = [{"label": name, "value": name} for name in store_data.keys()]
@@ -29,10 +32,7 @@ def update_radio_selection(store_s):
             dbc.Col(
                 [
                     html.H5("Choose transcripts"),
-                    dcc.Checklist(
-                        id="transcripts-radio-selection",
-                        options=options
-                    ),
+                    dcc.Checklist(id="transcripts-radio-selection", options=options),
                 ]
             ),
             dbc.Col(
@@ -86,4 +86,12 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
             autoPlay=False,
             style={"width": "100%"},
         ),
+        html.Li(
+            html.A(
+                "download video-file",
+                href=f"/download/{urlquote(video_subs_file_name)}",
+            )
+        ),
     ]
+
+
