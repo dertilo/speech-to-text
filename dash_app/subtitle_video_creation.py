@@ -11,23 +11,26 @@ from dash.exceptions import PreventUpdate
 from dash_app.app import app
 from dash_app.common import get_store_data
 from dash_app.updownload_app import APP_DATA_DIR, file_download_link
-from speech_to_text.create_subtitle_files import create_ass_file, SubtitleBlock
+from speech_to_text.create_subtitle_files import (
+    create_ass_file,
+    SubtitleBlock,
+    StyleConfig,
+)
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 from urllib.parse import quote as urlquote
 
 burn_video_div = html.Div(id="burn_into_video_form")
 
+
 @app.callback(
     Output("burn_into_video_form", "children"),
     Input("subtitle-store", "data"),
 )
 def update_radio_selection(store_s):
-    subtitle_blocks = [
-        SubtitleBlock(**d) for d in json.loads(store_s)
-    ]
+    subtitle_blocks = [SubtitleBlock(**d) for d in json.loads(store_s)]
     options = [{"label": name, "value": name} for name in subtitle_blocks[0].names]
-    assert len(options)>0
+    assert len(options) > 0
     burn_into_video_form = dbc.Row(
         [
             dbc.Col(
@@ -58,11 +61,13 @@ def update_radio_selection(store_s):
     State("video-file-dropdown", "value"),
 )
 def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
-    if store_s is None or n_clicks==0:
+    if store_s is None or n_clicks == 0:
         raise PreventUpdate
 
     video_file = Path(f"{APP_DATA_DIR}/{video_file_name}")
-    video_subs_file_name = f"{Path(video_file_name).stem}_{'_'.join(selection)}_subs.mp4"
+    video_subs_file_name = (
+        f"{Path(video_file_name).stem}_{'_'.join(selection)}_subs.mp4"
+    )
 
     def select(sb: SubtitleBlock, selection):
         sb.name_texts = [(n, t) for n, t in sb.name_texts if n in selection]
@@ -73,7 +78,11 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
     ]
 
     with NamedTemporaryFile(suffix=".ass") as f:
-        create_ass_file(subtitle_blocks, f.name)
+        create_ass_file(
+            subtitle_blocks,
+            f.name,
+            styles={name: StyleConfig(fontsize=20.0) for name in selection},
+        )
         subprocess.check_output(
             f"/usr/bin/ffmpeg -y -i '{video_file}' -vf ass={f.name} '{APP_DATA_DIR}/{video_subs_file_name}'",
             shell=True,
@@ -94,5 +103,3 @@ def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
             )
         ),
     ]
-
-
