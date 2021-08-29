@@ -57,11 +57,11 @@ def update_radio_selection(_,store_s):
     State("video-file-dropdown", "value"),
 )
 def burn_into_video_button(n_clicks, store_s, selection, video_file_name):
-    if store_s is None:
+    if store_s is None or n_clicks==0:
         raise PreventUpdate
 
     video_file = Path(f"{APP_DATA_DIR}/{video_file_name}")
-    video_subs_file_name = f"{Path(video_file_name).stem}_subs.mp4"
+    video_subs_file_name = f"{Path(video_file_name).stem}_{'_'.join(selection)}_subs.mp4"
 
     def select(sb: SubtitleBlock, selection):
         sb.name_texts = [(n, t) for n, t in sb.name_texts if n in selection]

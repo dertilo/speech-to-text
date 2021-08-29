@@ -37,9 +37,9 @@ process_button = dbc.Button(
     State("asr-model-dropdown", "value"),
 )
 def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles, model_name):
+    print(f"video_file:{video_file}")
     assert all((isinstance(s, str) for s in texts))
     if n_clicks > 0 and video_file is not None:
-        assert video_file is not None
         data = {
             title: TranslatedTranscript(title, k, text)
             for k, (title, text) in enumerate(zip(titles, texts))
@@ -101,4 +101,5 @@ def dump_to_disk_process_subtitles(n_clicks, video_file, texts, titles, model_na
             ),
         )
     else:
+        print(f"DEBUG: prevented to update dump_to_disk_process_subtitles")
         raise PreventUpdate
