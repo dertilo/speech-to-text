@@ -18,7 +18,7 @@ def get_letters_csv(video_file, model_name):
 
 def raw_transcript_name(asr_model_name):
     return (
-        f"raw-transcript-{asr_model_name}".replace(" ", "")
+        f"spoken-{asr_model_name}".replace(" ", "")
         .replace("-", "")
         .replace("/", "_")
         .replace(".", "")

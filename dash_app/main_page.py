@@ -121,7 +121,7 @@ page_content = [
     State("asr-model-dropdown", "value"), # TODO: stuff this in some store!?
 )
 def update_store_data(video_file, _, model_name):
-
+    print(f"DEBUG: update_store_data with video_file={video_file}")
     if video_file is not None and os.path.isfile(build_json_name(video_file, model_name)):
         return json.dumps(data_io.read_json(build_json_name(video_file, model_name)))
     else:
@@ -130,7 +130,6 @@ def update_store_data(video_file, _, model_name):
 
 @app.callback(
     Output("video-file-dropdown", "options"),
-    Output("video-file-dropdown", "value"),
     Input("upload-data", "contents"),
     State("upload-data", "filename"),
     State("upload-data", "last_modified"),
@@ -144,7 +143,7 @@ def update_video_file_dropdown(contents, names, dates):
         for f in uploaded_files()
         if not f.endswith("_subs.mp4")
     ]
-    return options, options[0]["value"] if len(options) > 0 else None
+    return options
 
 
 @app.callback(

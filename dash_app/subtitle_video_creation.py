@@ -20,13 +20,14 @@ burn_video_div = html.Div(id="burn_into_video_form")
 
 @app.callback(
     Output("burn_into_video_form", "children"),
-    Input("load-dumped-data-signal", "data"),
-    State("transcripts-store", "data"),
+    Input("subtitle-store", "data"),
 )
-def update_radio_selection(_,store_s):
-    store_data = get_store_data(store_s)
-
-    options = [{"label": name, "value": name} for name in store_data.keys()]
+def update_radio_selection(store_s):
+    subtitle_blocks = [
+        SubtitleBlock(**d) for d in json.loads(store_s)
+    ]
+    options = [{"label": name, "value": name} for name in subtitle_blocks[0].names]
+    assert len(options)>0
     burn_into_video_form = dbc.Row(
         [
             dbc.Col(
