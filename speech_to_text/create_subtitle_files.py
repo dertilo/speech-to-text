@@ -137,13 +137,17 @@ class SubtitleBlock:
             ],
         )
 
+@dataclass
+class StyleConfig:
+    fontsize:float=20.0
 
-def create_ass_file(subtitle_blocks: List[SubtitleBlock], ass_file):
+def create_ass_file(subtitle_blocks: List[SubtitleBlock], ass_file,styles:Dict[str,StyleConfig]):
     subs = SSAFile()
     colors = [Color(255, 255, 255), Color(100, 100, 255), Color(255, 100, 100)]
     for k, name in enumerate(subtitle_blocks[0].names):
         my_style = subs.styles["Default"].copy()
         my_style.primarycolor = colors[k]
+        my_style.fontsize=styles[name].fontsize
         subs.styles[name] = my_style
 
     for sb in subtitle_blocks:

@@ -48,17 +48,17 @@ class GreedyDecoder:
             tgt_dict.index("<pad>") if "<pad>" in tgt_dict else tgt_dict.index("<s>")
         )
         if "<sep>" in tgt_dict:
-            self.silence = tgt_dict.index("<sep>")
+            self.silence_idx = tgt_dict.index("<sep>")
         elif "|" in tgt_dict:
-            self.silence = tgt_dict.index("|")
+            self.silence_idx = tgt_dict.index("|")
         else:
-            self.silence = tgt_dict.index("</s>")
+            self.silence_idx = tgt_dict.index("</s>")
 
         return self
 
     @property
     def silence_str(self):
-        return self.tgt_dict[self.silence]
+        return self.tgt_dict[self.silence_idx]
 
     def get_prefix(self, idxs):
         """Normalize tokens by handling CTC blank, ASG replabels, etc."""
@@ -78,9 +78,9 @@ class GreedyDecoder:
         return {"text": prefix_answer.replace(self.silence_str, " "), "seq_idx": seqidx}
 
     def strip_startend_silence(self, seqidx_vocabidx:List[Tuple[int,int]]):
-        while seqidx_vocabidx[0][1] == self.silence:
+        while seqidx_vocabidx[0][1] == self.silence_idx:
             seqidx_vocabidx = seqidx_vocabidx[1:]
-        while seqidx_vocabidx[-1][1] == self.silence:
+        while seqidx_vocabidx[-1][1] == self.silence_idx:
             seqidx_vocabidx = seqidx_vocabidx[:-1]
         return seqidx_vocabidx
 
