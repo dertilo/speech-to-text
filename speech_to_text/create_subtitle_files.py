@@ -68,7 +68,8 @@ def cut_block_out_of_transcript(
             if l.letter == " ":
                 yield buffer
                 buffer = []
-        yield buffer
+        if len(buffer)>0:
+            yield buffer
 
     name2block = {
         name: [
