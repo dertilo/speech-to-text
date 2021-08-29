@@ -105,7 +105,7 @@ def generate_block_start_ends(
                 k + 2, len(letters)
             )  # next token might start with vocal, heuristic to get at "real" start of token
             is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
-            if (is_pause and block_len > 10 or block_len > 50) or force_break:
+            if (is_pause and block_len > 10 or block_len > 90) or force_break:
                 yield last_end, l.index
                 last_end = l.index + 10
                 block_len = 0
@@ -148,12 +148,14 @@ def create_ass_file(subtitle_blocks: List[SubtitleBlock], ass_file,styles:Dict[s
         my_style = subs.styles["Default"].copy()
         my_style.primarycolor = colors[k]
         my_style.fontsize=styles[name].fontsize
+        my_style.shadow=0
         subs.styles[name] = my_style
 
     for sb in subtitle_blocks:
         start, end = None, None
         for name, text in sb.name_texts:
             if len(text) > 0:
+                text=text.replace("_"," ")
                 if start is None:
                     start = sb.start
                     end = sb.end
