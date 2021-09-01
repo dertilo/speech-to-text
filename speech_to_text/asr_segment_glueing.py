@@ -81,7 +81,12 @@ def glue_left_right(
     sample_rate,
 ) -> AlignedTranscript:
 
-    sm.set_seqs(left.text, right.text)
+    cut_right_just_to_help_alingment = AlignedTranscript(
+        [l for l in right.letters if right.abs_idx(l.r_idx) < left.end_idx],
+        sample_rate,
+        right.start_idx,
+    )
+    sm.set_seqs(left.text, cut_right_just_to_help_alingment.text)
     matches = [m for m in sm.get_matching_blocks() if m.size > 0]
     aligned_idx = [(m.a + k, m.b + k) for m in matches for k in range(m.size)]
     match_idx_closest_to_middle = np.argmin(
