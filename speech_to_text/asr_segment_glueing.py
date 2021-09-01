@@ -38,12 +38,7 @@ def glue_transcripts(
         if sample_rate is None:
             sample_rate = ts.sample_rate
         if previous is not None:
-            print(f"should be step: {ts.start_idx-previous.start_idx}")
-            right = AlignedTranscript(
-                letters=[s for s in ts.letters if s.r_idx < step],
-                sample_rate=ts.sample_rate,
-                start_idx=ts.start_idx,
-            )
+            right = ts
             left = AlignedTranscript(
                 letters=[
                     s
@@ -54,28 +49,23 @@ def glue_transcripts(
                 start_idx=previous.start_idx,
             )
             glued = glue_left_right(debug, left, right, sm, sample_rate)
+            print(f"prev-start_idx: {glued.abs_idx(glued.letters[0].r_idx)}")
+            letters = [
+                l for l in letters if l.r_idx < glued.abs_idx(glued.letters[0].r_idx)
+            ]
             letters.extend(
                 [LetterIdx(l.letter, glued.abs_idx(l.r_idx)) for l in glued.letters]
             )
         else:
-            right = AlignedTranscript(
-                [s for s in ts.letters if s.r_idx < step],
-                ts.sample_rate,
-                start_idx=ts.start_idx,
-            )
+            right = ts
             if debug:
                 print(f"initial: {right.text}")
             assert ts.start_idx == 0
-            letters.extend([x for x in right.letters])
+            letters.extend(
+                [LetterIdx(x.letter, right.abs_idx(x.r_idx)) for x in right.letters]
+            )
         previous = ts
 
-    letters.extend(
-        [
-            LetterIdx(s.letter, s.r_idx + ts.start_idx)
-            for s in previous.letters
-            if s.r_idx >= step
-        ]
-    )
     assert all(
         (letters[k].r_idx > letters[k - 1].r_idx for k in range(1, len(letters)))
     )
