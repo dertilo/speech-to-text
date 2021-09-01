@@ -2,7 +2,6 @@ import os
 import pickle
 import sys
 
-import icdiff
 from util import data_io
 
 sys.path.append(".")
@@ -76,11 +75,11 @@ def glue_left_right(
     debug, idx, left, right, sm: difflib.SequenceMatcher, step, sample_rate
 ):
 
-    sm.set_seqs(left.hyp, right.hyp)
+    sm.set_seqs(left.text, right.text)
     matches = [m for m in sm.get_matching_blocks() if m.size > 0]
     aligned_idx = [(m.a + k, m.b + k) for m in matches for k in range(m.size)]
     match_idx = np.argmin(
-        [np.abs(i - round(len(left.hyp) / 2)) for i, _ in aligned_idx]
+        [np.abs(i - round(len(left.text) / 2)) for i, _ in aligned_idx]
     )
     glue_left, glue_right = aligned_idx[match_idx]
     glue_idx_left = left.letters[glue_left].index
@@ -97,7 +96,7 @@ def glue_left_right(
     ]
     extend_by_this = letters_left + letters_right
     if debug:
-        print(f"left: {left.hyp}, right: {right.hyp}")
+        print(f"left: {left.text}, right: {right.text}")
         print(
             f"GLUED left: {AlignedTranscript(letters_left, sample_rate).text}, right: {AlignedTranscript(letters_right, sample_rate).text}"
         )
@@ -118,7 +117,7 @@ def generate_arrays(samples: np.ndarray, step):
 
 
 def transcribe_audio_file(
-    asr: SpeechToText, file, step_dur=10, do_cache=False
+    asr: SpeechToText, file, step_dur=5, do_cache=False
 ):  # seconds
     audio = AudioSegment.from_file(
         file,
@@ -158,19 +157,28 @@ if __name__ == "__main__":
     asr = SpeechToText(
         model_name=model,
     ).init()
-    transcript = transcribe_audio_file(asr, file, do_cache=False)
+    transcript = transcribe_audio_file(asr, file,step_dur=2, do_cache=False)
     hyp = transcript.text
-    print(hyp)
     ref = next(data_io.read_lines("tests/resources/ref.txt"))
-    print(ref)
+    print(hyp)
+    # eps="_"
+    # alignments = padded_smith_waterman_alignments(ref, hyp, eps)
+    # # edts: List[EditType] = [get_edit_type(a.ref, a.hyp, eps) for a in
+    # #                         alignments]
 
-    cd = icdiff.ConsoleDiff(cols=120)
-    diff_line = "\n".join(
-        cd.make_table(
-            [ref],
-            [hyp],
-            "ref",
-            "hyp",
-        )
-    )
-    print(diff_line)
+    # al_ref="".join(x.ref for x in alignments)
+    # al_hyp="".join(x.hyp for x in alignments)
+    # aligned_diff = f"ref: {al_ref}\nhyp: {al_hyp}"
+    # print(aligned_diff)
+
+    #
+    # cd = icdiff.ConsoleDiff(cols=120)
+    # diff_line = "\n".join(
+    #     cd.make_table(
+    #         [ref],
+    #         [hyp],
+    #         "ref",
+    #         "hyp",
+    #     )
+    # )
+    # print(diff_line)
