@@ -22,7 +22,8 @@ class LetterIdx:
 @dataclass
 class AlignedTranscript:
     letters: List[LetterIdx]
-    sample_rate:int
+    sample_rate: int
+    start_idx: Optional[int] = None
 
     @property
     def text(self):
@@ -34,7 +35,8 @@ class AlignedTranscript:
 
     @property
     def timestamps(self):
-        return [l.index/self.sample_rate for l in self.letters]
+        return [l.index / self.sample_rate for l in self.letters]
+
 
 @dataclass
 class GreedyDecoder:
@@ -67,7 +69,7 @@ class GreedyDecoder:
             for k, g in itertools.groupby(list(enumerate(idxs)), key=lambda x: x[1])
         )
         seqidx_vocabidx = list(filter(lambda x: x[1] != self.blank, idxs))
-        assert len(seqidx_vocabidx)>0
+        assert len(seqidx_vocabidx) > 0
         seqidx_vocabidx = self.strip_startend_silence(seqidx_vocabidx)
         prefix_answer = "".join([self.tgt_dict[i] for _, i in seqidx_vocabidx])
         assert not (
@@ -77,7 +79,7 @@ class GreedyDecoder:
         seqidx = [i for i, _ in seqidx_vocabidx]
         return {"text": prefix_answer.replace(self.silence_str, " "), "seq_idx": seqidx}
 
-    def strip_startend_silence(self, seqidx_vocabidx:List[Tuple[int,int]]):
+    def strip_startend_silence(self, seqidx_vocabidx: List[Tuple[int, int]]):
         while seqidx_vocabidx[0][1] == self.silence_idx:
             seqidx_vocabidx = seqidx_vocabidx[1:]
         while seqidx_vocabidx[-1][1] == self.silence_idx:
@@ -109,16 +111,16 @@ class SpeechToText:
     ) -> AlignedTranscript:
 
         logits = self._calc_logits(audio, input_sample_rate)
-        return self.decode_with_timestamps(logits, len(audio),input_sample_rate)
+        return self.decode_with_timestamps(logits, len(audio), input_sample_rate)
 
-    def decode_with_timestamps(self, logits, input_len,sample_rate):
+    def decode_with_timestamps(self, logits, input_len, sample_rate):
         transcript = self.decoder.decode(logits)[0]
         array_idx = [
             round(input_len / logits.size()[1] * i) for i in transcript["seq_idx"]
         ]
         return AlignedTranscript(
             letters=[LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)],
-            sample_rate=sample_rate
+            sample_rate=sample_rate,
         )
 
     def _calc_logits(self, audio: np.ndarray, input_sample_rate: Optional[int] = None):
