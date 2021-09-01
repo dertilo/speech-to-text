@@ -45,7 +45,7 @@ def glue_transcripts(
                 start_idx=ts.start_idx,
             )
             left = AlignedTranscript(
-                letters=[s for s in previous.letters if s.r_idx >= step],
+                letters=[s for s in previous.letters if previous.abs_idx(s.r_idx) >= ts.start_idx],
                 sample_rate=previous.sample_rate,
                 start_idx=previous.start_idx,
             )
