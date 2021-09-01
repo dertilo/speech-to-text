@@ -45,12 +45,18 @@ def glue_transcripts(
                 start_idx=ts.start_idx,
             )
             left = AlignedTranscript(
-                letters=[s for s in previous.letters if previous.abs_idx(s.r_idx) >= ts.start_idx],
+                letters=[
+                    s
+                    for s in previous.letters
+                    if previous.abs_idx(s.r_idx) >= ts.start_idx
+                ],
                 sample_rate=previous.sample_rate,
                 start_idx=previous.start_idx,
             )
             glued = glue_left_right(debug, left, right, sm, sample_rate)
-            letters.extend(glued)
+            letters.extend(
+                [LetterIdx(l.letter, glued.abs_idx(l.r_idx)) for l in glued.letters]
+            )
         else:
             right = AlignedTranscript(
                 [s for s in ts.letters if s.r_idx < step],
@@ -83,7 +89,7 @@ def glue_left_right(
     right: AlignedTranscript,
     sm: difflib.SequenceMatcher,
     sample_rate,
-):
+) -> AlignedTranscript:
 
     sm.set_seqs(left.text, right.text)
     matches = [m for m in sm.get_matching_blocks() if m.size > 0]
@@ -95,22 +101,21 @@ def glue_left_right(
     glue_idx_left = left.letters[glue_left].r_idx
     glue_idx_right = right.letters[glue_right].r_idx
     letters_right = [
-        LetterIdx(x.letter, x.r_idx + right.start_idx)
+        LetterIdx(x.letter, x.r_idx + right.start_idx - left.start_idx)
         for x in right.letters
         if x.r_idx > glue_idx_right
     ]
     letters_left = [
-        LetterIdx(x.letter, x.r_idx + left.start_idx)
-        for x in left.letters
-        if x.r_idx <= glue_idx_left
+        LetterIdx(x.letter, x.r_idx) for x in left.letters if x.r_idx <= glue_idx_left
     ]
-    extend_by_this = letters_left + letters_right
     if debug:
         print(f"left: {left.text}, right: {right.text}")
         print(
             f"GLUED left: {AlignedTranscript(letters_left, sample_rate).text}, right: {AlignedTranscript(letters_right, sample_rate).text}"
         )
-    return extend_by_this
+    return AlignedTranscript(
+        letters_left + letters_right, sample_rate, start_idx=left.start_idx
+    )
 
 
 def generate_arrays(samples: np.ndarray, step):
