@@ -22,7 +22,6 @@ from speech_to_text.transcribe_audio import (
 
 def glue_transcripts(
     aligned_transcripts: List[AlignedTranscript],
-    step=round(TARGET_SAMPLE_RATE * 2),
     debug=True,
 ) -> AlignedTranscript:
     all_but_last_must_be_of_same_len = (
@@ -48,7 +47,7 @@ def glue_transcripts(
                 sample_rate=previous.sample_rate,
                 start_idx=previous.start_idx,
             )
-            glued = glue_left_right(debug, left, right, sm, sample_rate)
+            glued = glue_left_right(left, right, sm, debug)
             print(f"prev-start_idx: {glued.abs_idx(glued.letters[0].r_idx)}")
             letters = [
                 l for l in letters if l.r_idx < glued.abs_idx(glued.letters[0].r_idx)
@@ -69,21 +68,24 @@ def glue_transcripts(
     assert all(
         (letters[k].r_idx > letters[k - 1].r_idx for k in range(1, len(letters)))
     )
-    transcript = AlignedTranscript(letters, sample_rate, start_idx=letters[0].r_idx)
+    assert aligned_transcripts[0].start_idx == 0
+    transcript = AlignedTranscript(
+        letters, sample_rate, start_idx=aligned_transcripts[0].start_idx
+    )
     return transcript
 
 
 def glue_left_right(
-    debug,
     left: AlignedTranscript,
     right: AlignedTranscript,
     sm: difflib.SequenceMatcher,
-    sample_rate,
+    debug=False,
 ) -> AlignedTranscript:
 
+    sr = right.sample_rate
     cut_right_just_to_help_alingment = AlignedTranscript(
         [l for l in right.letters if right.abs_idx(l.r_idx) < left.end_idx],
-        sample_rate,
+        sr,
         right.start_idx,
     )
     sm.set_seqs(left.text, cut_right_just_to_help_alingment.text)
@@ -106,11 +108,9 @@ def glue_left_right(
     if debug:
         print(f"left: {left.text}, right: {right.text}")
         print(
-            f"GLUED left: {AlignedTranscript(letters_left, sample_rate).text}, right: {AlignedTranscript(letters_right, sample_rate).text}"
+            f"GLUED left: {AlignedTranscript(letters_left, sr).text}, right: {AlignedTranscript(letters_right, sr).text}"
         )
-    return AlignedTranscript(
-        letters_left + letters_right, sample_rate, start_idx=left.start_idx
-    )
+    return AlignedTranscript(letters_left + letters_right, sr, start_idx=left.start_idx)
 
 
 def generate_arrays(samples: np.ndarray, step):
@@ -126,9 +126,7 @@ def generate_arrays(samples: np.ndarray, step):
             yield idx, array
 
 
-def transcribe_audio_file(
-    asr: SpeechToText, file, step_dur=5, do_cache=False
-):  # seconds
+def transcribe_audio_file(asr: SpeechToText, file, step_dur=5, do_cache=False):
     audio = AudioSegment.from_file(
         file,
         target_sr=TARGET_SAMPLE_RATE,
@@ -158,7 +156,7 @@ def transcribe_audio_file(
         with open(cache_file, "rb") as f:
             aligned_transcripts = pickle.load(f)
 
-    transcript = glue_transcripts(aligned_transcripts, step=step)
+    transcript = glue_transcripts(aligned_transcripts)
     return transcript
 
 
