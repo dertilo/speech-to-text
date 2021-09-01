@@ -38,12 +38,12 @@ def glue_transcripts(
             sample_rate = ts.sample_rate
         if previous is not None:
             glued = glue_left_right(left=previous, right=ts, sm=sm, debug=debug)
-            print(f"prev-start_idx: {glued.abs_idx(glued.letters[0].r_idx)}")
+            print(f"prev-start_idx: {glued.abs_idx(glued.letters[0])}")
             letters = [
-                l for l in letters if l.r_idx < glued.abs_idx(glued.letters[0].r_idx)
+                l for l in letters if l.r_idx < glued.abs_idx(glued.letters[0])
             ]
             letters.extend(
-                [LetterIdx(l.letter, glued.abs_idx(l.r_idx)) for l in glued.letters]
+                [LetterIdx(l.letter, glued.abs_idx(l)) for l in glued.letters]
             )
         else:
             right = ts
@@ -51,7 +51,7 @@ def glue_transcripts(
                 print(f"initial: {right.text}")
             assert ts.start_idx == 0
             letters.extend(
-                [LetterIdx(x.letter, right.abs_idx(x.r_idx)) for x in right.letters]
+                [LetterIdx(x.letter, right.abs_idx(x)) for x in right.letters]
             )
         previous = ts
 
@@ -91,13 +91,17 @@ def glue_left_right(
     assert sr == left.sample_rate
 
     left = AlignedTranscript(
-        letters=[s for s in left.letters if left.abs_idx(s.r_idx) >= right.start_idx],
+        letters=[s for s in left.letters if left.abs_idx(s) >= right.start_idx],
         sample_rate=sr,
         start_idx=left.start_idx,
     )
 
     cut_right_just_to_help_alingment = AlignedTranscript(
-        [l for l in right.letters if right.abs_idx(l.r_idx) < left.end_idx],
+        [
+            l
+            for l in right.letters
+            if right.abs_idx(l) < left.abs_idx(left.letters[-1])
+        ],
         sr,
         right.start_idx,
     )

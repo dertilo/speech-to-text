@@ -16,7 +16,7 @@ TARGET_SAMPLE_RATE = 16_000
 @dataclass
 class LetterIdx:
     letter: str
-    r_idx: int # relative index
+    r_idx: int  # relative index
 
 
 @dataclass
@@ -30,15 +30,11 @@ class AlignedTranscript:
         return "".join([x.letter for x in self.letters])
 
     @property
-    def end_idx(self):
-        return self.start_idx+self.letters[-1].r_idx
-
-    @property
     def array_idx(self):
         return [x.r_idx for x in self.letters]
 
-    def abs_idx(self,r_idx:int):
-        return self.start_idx+r_idx
+    def abs_idx(self, letter: LetterIdx):
+        return self.start_idx + letter.r_idx
 
     @property
     def timestamps(self):
