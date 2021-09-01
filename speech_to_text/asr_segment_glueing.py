@@ -37,17 +37,7 @@ def glue_transcripts(
         if sample_rate is None:
             sample_rate = ts.sample_rate
         if previous is not None:
-            right = ts
-            left = AlignedTranscript(
-                letters=[
-                    s
-                    for s in previous.letters
-                    if previous.abs_idx(s.r_idx) >= ts.start_idx
-                ],
-                sample_rate=previous.sample_rate,
-                start_idx=previous.start_idx,
-            )
-            glued = glue_left_right(left, right, sm, debug)
+            glued = glue_left_right(left=previous, right=ts, sm=sm, debug=debug)
             print(f"prev-start_idx: {glued.abs_idx(glued.letters[0].r_idx)}")
             letters = [
                 l for l in letters if l.r_idx < glued.abs_idx(glued.letters[0].r_idx)
@@ -81,8 +71,31 @@ def glue_left_right(
     sm: difflib.SequenceMatcher,
     debug=False,
 ) -> AlignedTranscript:
+    """
+    two overlapping sequences
+
+    left:_____----:-
+    right:_______-:----
+
+    colon is glue-point which is to be found
+
+    1. from left cut away what reaches too far into past
+        left:________-:-
+    2. from right cut away what reaches too far into future -> just for alignmend-method
+        right:_______-:--
+
+    return cut left and full right glued together
+    """
 
     sr = right.sample_rate
+    assert sr == left.sample_rate
+
+    left = AlignedTranscript(
+        letters=[s for s in left.letters if left.abs_idx(s.r_idx) >= right.start_idx],
+        sample_rate=sr,
+        start_idx=left.start_idx,
+    )
+
     cut_right_just_to_help_alingment = AlignedTranscript(
         [l for l in right.letters if right.abs_idx(l.r_idx) < left.end_idx],
         sr,
@@ -102,9 +115,7 @@ def glue_left_right(
         for x in right.letters
         if x.r_idx > glue_idx_right
     ]
-    letters_left = [
-        LetterIdx(x.letter, x.r_idx) for x in left.letters if x.r_idx <= glue_idx_left
-    ]
+    letters_left = [x for x in left.letters if x.r_idx <= glue_idx_left]
     if debug:
         print(f"left: {left.text}, right: {right.text}")
         print(
