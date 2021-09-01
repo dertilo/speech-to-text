@@ -99,7 +99,6 @@ class SpeechToText:
         self.processor = Wav2Vec2Processor.from_pretrained(self.model_name)
         assert self.processor.feature_extractor.do_normalize is True
         self.model = Wav2Vec2ForCTC.from_pretrained(self.model_name)
-        assert self.processor.feature_extractor.return_attention_mask == True
         target_dictionary = list(self.processor.tokenizer.get_vocab().keys())
         print(f"target_dictionary: {target_dictionary}")
         self.decoder = GreedyDecoder(target_dictionary).init()
@@ -146,7 +145,7 @@ class SpeechToText:
             audio,
             sampling_rate=TARGET_SAMPLE_RATE,
             return_tensors="pt",
-            # return_attention_mask=True,
+            return_attention_mask=True,
         )
         with torch.no_grad():
             logits = self.model(
