@@ -16,26 +16,33 @@ TARGET_SAMPLE_RATE = 16_000
 @dataclass
 class LetterIdx:
     letter: str
-    index: int
+    r_idx: int # relative index
 
 
 @dataclass
 class AlignedTranscript:
     letters: List[LetterIdx]
     sample_rate: int
-    start_idx: Optional[int] = None
+    start_idx: int = 0
 
     @property
     def text(self):
         return "".join([x.letter for x in self.letters])
 
     @property
+    def end_idx(self):
+        return self.start_idx+self.letters[-1].r_idx
+
+    @property
     def array_idx(self):
-        return [x.index for x in self.letters]
+        return [x.r_idx for x in self.letters]
+
+    def abs_idx(self,r_idx:int):
+        return self.start_idx+r_idx
 
     @property
     def timestamps(self):
-        return [l.index / self.sample_rate for l in self.letters]
+        return [l.r_idx / self.sample_rate for l in self.letters]
 
 
 @dataclass
@@ -108,20 +115,17 @@ class SpeechToText:
 
     def transcribe_audio_array(
         self, audio: np.ndarray, input_sample_rate: Optional[int] = None
-    ) -> AlignedTranscript:
+    ) -> List[LetterIdx]:
 
         logits = self._calc_logits(audio, input_sample_rate)
-        return self.decode_with_timestamps(logits, len(audio), input_sample_rate)
+        return self.decode_with_timestamps(logits, len(audio))
 
-    def decode_with_timestamps(self, logits, input_len, sample_rate):
+    def decode_with_timestamps(self, logits, input_len):
         transcript = self.decoder.decode(logits)[0]
         array_idx = [
             round(input_len / logits.size()[1] * i) for i in transcript["seq_idx"]
         ]
-        return AlignedTranscript(
-            letters=[LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)],
-            sample_rate=sample_rate,
-        )
+        return [LetterIdx(l, i) for l, i in zip(transcript["text"], array_idx)]
 
     def _calc_logits(self, audio: np.ndarray, input_sample_rate: Optional[int] = None):
 

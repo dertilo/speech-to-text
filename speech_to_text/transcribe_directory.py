@@ -51,7 +51,7 @@ if __name__ == "__main__":
         transcript = convert_to_wav_transcribe(asr, file)
         data_io.write_lines(
             f"{output_dir}/{file.stem}.csv",
-            [f"{l.letter}\t{l.index}" for l in transcript.letters],
+            [f"{l.letter}\t{l.r_idx}" for l in transcript.letters],
         )
 
         data_io.write_lines(

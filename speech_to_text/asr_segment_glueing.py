@@ -21,57 +21,59 @@ from speech_to_text.transcribe_audio import (
 
 
 def glue_transcripts(
-    aligned_transcripts: List[Tuple[int, AlignedTranscript]],
+    aligned_transcripts: List[AlignedTranscript],
     step=round(TARGET_SAMPLE_RATE * 2),
     debug=True,
 ) -> AlignedTranscript:
     all_but_last_must_be_of_same_len = (
-        len(set((len(x.letters) for _, x in aligned_transcripts[:-1]))) == 1
-    ), [len(x.letters) for _, x in aligned_transcripts]
+        len(set((len(x.letters) for x in aligned_transcripts[:-1]))) == 1
+    ), [len(x.letters) for x in aligned_transcripts]
     assert all_but_last_must_be_of_same_len
 
     sm = difflib.SequenceMatcher()
     sample_rate = None
     previous: Optional[AlignedTranscript] = None
     letters: List[LetterIdx] = []
-    for idx, ts in aligned_transcripts:
+    for ts in aligned_transcripts:
         if sample_rate is None:
             sample_rate = ts.sample_rate
         if previous is not None:
+            print(f"should be step: {ts.start_idx-previous.start_idx}")
             right = AlignedTranscript(
-                letters=[s for s in ts.letters if s.index < step],
+                letters=[s for s in ts.letters if s.r_idx < step],
                 sample_rate=ts.sample_rate,
-                start_idx=idx,
+                start_idx=ts.start_idx,
             )
             left = AlignedTranscript(
-                letters=[s for s in previous.letters if s.index >= step],
-                sample_rate=ts.sample_rate,
-                start_idx=idx-step,
+                letters=[s for s in previous.letters if s.r_idx >= step],
+                sample_rate=previous.sample_rate,
+                start_idx=previous.start_idx,
             )
             glued = glue_left_right(debug, left, right, sm, sample_rate)
             letters.extend(glued)
         else:
             right = AlignedTranscript(
-                [s for s in ts.letters if s.index < step], ts.sample_rate,
-                start_idx=idx
+                [s for s in ts.letters if s.r_idx < step],
+                ts.sample_rate,
+                start_idx=ts.start_idx,
             )
             if debug:
                 print(f"initial: {right.text}")
-            assert idx == 0
+            assert ts.start_idx == 0
             letters.extend([x for x in right.letters])
         previous = ts
 
     letters.extend(
         [
-            LetterIdx(s.letter, s.index + idx)
+            LetterIdx(s.letter, s.r_idx + ts.start_idx)
             for s in previous.letters
-            if s.index >= step
+            if s.r_idx >= step
         ]
     )
     assert all(
-        (letters[k].index > letters[k - 1].index for k in range(1, len(letters)))
+        (letters[k].r_idx > letters[k - 1].r_idx for k in range(1, len(letters)))
     )
-    transcript = AlignedTranscript(letters, sample_rate,start_idx=letters[0].index)
+    transcript = AlignedTranscript(letters, sample_rate, start_idx=letters[0].r_idx)
     return transcript
 
 
@@ -90,17 +92,17 @@ def glue_left_right(
         [np.abs(i - round(len(left.text) / 2)) for i, _ in aligned_idx]
     )
     glue_left, glue_right = aligned_idx[match_idx_closest_to_middle]
-    glue_idx_left = left.letters[glue_left].index
-    glue_idx_right = right.letters[glue_right].index
+    glue_idx_left = left.letters[glue_left].r_idx
+    glue_idx_right = right.letters[glue_right].r_idx
     letters_right = [
-        LetterIdx(x.letter, x.index + right.start_idx)
+        LetterIdx(x.letter, x.r_idx + right.start_idx)
         for x in right.letters
-        if x.index > glue_idx_right
+        if x.r_idx > glue_idx_right
     ]
     letters_left = [
-        LetterIdx(x.letter, x.index + left.start_idx)
+        LetterIdx(x.letter, x.r_idx + left.start_idx)
         for x in left.letters
-        if x.index <= glue_idx_left
+        if x.r_idx <= glue_idx_left
     ]
     extend_by_this = letters_left + letters_right
     if debug:
@@ -140,7 +142,11 @@ def transcribe_audio_file(
     if not do_cache or not os.path.isfile(cache_file):
 
         aligned_transcripts = [
-            (idx, asr.transcribe_audio_array(array, TARGET_SAMPLE_RATE))
+            AlignedTranscript(
+                asr.transcribe_audio_array(array, TARGET_SAMPLE_RATE),
+                sample_rate=TARGET_SAMPLE_RATE,
+                start_idx=idx,
+            )
             for idx, array in arrays
         ]
         with open(cache_file, "wb") as f:
@@ -165,7 +171,7 @@ if __name__ == "__main__":
     asr = SpeechToText(
         model_name=model,
     ).init()
-    transcript = transcribe_audio_file(asr, file, step_dur=2, do_cache=False)
+    transcript = transcribe_audio_file(asr, file, step_dur=2, do_cache=True)
     hyp = transcript.text
     ref = next(data_io.read_lines("tests/resources/hyp_stepdur_2.txt"))
     cd = icdiff.ConsoleDiff(cols=120)
@@ -178,4 +184,4 @@ if __name__ == "__main__":
         )
     )
     print(diff_line)
-    assert hyp==ref
+    assert hyp == ref

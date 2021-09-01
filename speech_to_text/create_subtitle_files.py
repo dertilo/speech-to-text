@@ -43,8 +43,8 @@ def build_srt_block(
     for k, (name, block) in enumerate(blocks.items()):
         if len(block) > 0:
             if start is None:
-                start = round(1000 * block[0].index / sample_rate)
-                end = round(1000 * block[-1].index / sample_rate)
+                start = round(1000 * block[0].r_idx / sample_rate)
+                end = round(1000 * block[-1].r_idx / sample_rate)
             text = "".join((l.letter for l in block))
         else:
             text = ""
@@ -75,7 +75,7 @@ def cut_block_out_of_transcript(
         name: [
             l
             for tok in tokenize_letters(letters)
-            if tok[0].index >= block_start and tok[0].index < block_end
+            if tok[0].r_idx >= block_start and tok[0].r_idx < block_end
             for l in tok
         ]
         for name, letters in transcripts
@@ -104,12 +104,12 @@ def generate_block_start_ends(
             next_one = min(
                 k + 2, len(letters)
             )  # next token might start with vocal, heuristic to get at "real" start of token
-            is_pause = letters[next_one].index - l.index > 0.25 * TARGET_SAMPLE_RATE
+            is_pause = letters[next_one].r_idx - l.r_idx > 0.25 * TARGET_SAMPLE_RATE
             if (is_pause and block_len > 10 or block_len > 90) or force_break:
-                yield last_end, l.index
-                last_end = l.index + 10
+                yield last_end, l.r_idx
+                last_end = l.r_idx + 10
                 block_len = 0
-    yield last_end, l.index
+    yield last_end, l.r_idx
 
 
 @dataclass
@@ -124,9 +124,9 @@ class SubtitleBlock:
 
     @classmethod
     def from_dict_letters(cls, dictletter: Dict[str, List[LetterIdx]]):
-        first_index = list(dictletter.values())[0][0].index
+        first_index = list(dictletter.values())[0][0].r_idx
         start = make_time(ms=round(1000 * first_index / TARGET_SAMPLE_RATE))
-        last_index = list(dictletter.values())[0][-1].index
+        last_index = list(dictletter.values())[0][-1].r_idx
         end = make_time(ms=round(1000 * last_index / TARGET_SAMPLE_RATE))
         return cls(
             start,
@@ -189,7 +189,7 @@ def segment_transcript_to_subtitle_blocks(
     raw_letters = [LetterIdx(l, int(i)) for l, i in g]
     assert all(
         (
-            raw_letters[k].index > raw_letters[k - 1].index
+            raw_letters[k].r_idx > raw_letters[k - 1].r_idx
             for k in range(1, len(raw_letters))
         )
     )
@@ -227,9 +227,9 @@ def temporal_align_text_to_letters(
     END = "<end>"
     add_start_end = lambda x: f"{START}{x}{END}"
     raw_letters = (
-        [LetterIdx(s, raw_letters[0].index) for s in START]
+        [LetterIdx(s, raw_letters[0].r_idx) for s in START]
         + raw_letters
-        + [LetterIdx(s, raw_letters[-1].index) for s in END]
+        + [LetterIdx(s, raw_letters[-1].r_idx) for s in END]
     )
 
     raw_transcript = "".join([l.letter for l in raw_letters])
@@ -255,7 +255,7 @@ def temporal_align_text_to_letters(
     raw_letters += [raw_letters[-1]]
     matched2index = {
         tok2letter_idx_b[al.hypi_from]
-        + k: raw_letters[tok2letter_idx_a[al.refi_from] + k].index
+        + k: raw_letters[tok2letter_idx_a[al.refi_from] + k].r_idx
         for al in matches
         for k in range(tok2letter_idx_a[al.refi_to] - tok2letter_idx_a[al.refi_from])
     }
@@ -267,7 +267,7 @@ def temporal_align_text_to_letters(
         for k, l in enumerate(corrected_transcript)
     ]
     assert all(
-        (letters[k].index >= letters[k - 1].index for k in range(1, len(letters)))
+        (letters[k].r_idx >= letters[k - 1].r_idx for k in range(1, len(letters)))
     )
     return letters[len(START) : -len(END)]
 
